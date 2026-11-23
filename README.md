@@ -1,31 +1,29 @@
-# gibbon
+# gibbon marketplace
 
-Claude Code plugin for project state tracking. This repo is both the plugin and a one-plugin marketplace.
+Claude Code plugins, one folder each under `plugins/`:
 
-- `gibbon:project-scaffold` - set up a new project's state layout. `skills/project-scaffold/layout.md` defines the
-  layout all three skills share.
-- `gibbon:project-state-migrate` - audit an existing project's state tracking and optionally migrate it to the layout.
-- `gibbon:wrap-up` - record session state and commit before starting a fresh session.
-
-Hooks, in every project with `docs/state/`:
-
-- `SessionStart` runs `scripts/session_start.py`, which prints the session routine (with the `scripts/tasks.py`
-  command), git status, the project's `tools/project_checks.py` and deployed artefact hash results,
-  `scripts/check_state.py`'s validation and next tasks, and `docs/status.md`.
-- `PreToolUse` runs `hooks/guard_state.py`, which asks the user before an edit to `tasks.json` or `tests.json` that the
-  layout reserves for them.
-- `PostToolUse` runs `hooks/post_state_check.py`, which reports `check_state.py`'s findings after an edit to
-  `docs/state/`.
+- [`gibbon`](plugins/gibbon/README.md) - project state tracking: scaffold a project, audit and migrate an existing one,
+  and wrap up a session.
+- `bg-tasks` - a band above the prompt listing running background tasks and subagents, and scheduled prompts.
 
 ## Install
 
 ```
 claude plugin marketplace add F:\GIT\claude-project-skills
 claude plugin install gibbon@gibbon
+claude plugin install bg-tasks@gibbon
 ```
 
 ## Update
 
-Claude Code runs an installed copy, not this repo. After changing a file, bump `version` in
-`.claude-plugin/plugin.json`, then run `claude plugin marketplace update gibbon` and `claude plugin update gibbon@gibbon`;
-without the version bump the installed copy stays stale.
+Claude Code runs an installed copy, not this repo. After changing a plugin's files, bump `version` in
+`plugins/<plugin>/.claude-plugin/plugin.json`, then run `claude plugin marketplace update gibbon` and
+`claude plugin update <plugin>@gibbon`; without the version bump the installed copy stays stale.
+
+## Adding a plugin
+
+Put it in `plugins/<name>/` with its own `.claude-plugin/plugin.json`, and add
+`{ "name": "<name>", "source": "./plugins/<name>" }` to `plugins` in `.claude-plugin/marketplace.json`.
+
+A mod's (a plugin with a `hooks.json` `modules` entry) tests run with `claude plugin test plugins/<name>`, and
+`claude plugin validate plugins/<name>` checks its module.
