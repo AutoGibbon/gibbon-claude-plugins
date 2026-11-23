@@ -32,8 +32,8 @@ process gaps are for the user to weigh.
 ## Session start check
 
 The gibbon plugin's `SessionStart` hook runs `scripts/session_start.py --hook` on startup, `/clear` and compaction in
-every project, and Claude Code adds its output to the session's context. In a project with `docs/state/` it prints git
-status and recent commits, the problems `tools/project_checks.py` and the artefact hash comparison find, notes on
+every project, and Claude Code adds its output to the session's context. In a project with `docs/state/` it prints the
+session routine, git status and recent commits, the problems `tools/project_checks.py` and the artefact hash comparison find, notes on
 `tools/tasks.py` and on per-project scripts the plugin replaces, and `check_state.py`'s output, which ends with the
 tasks to pick up; elsewhere it prints nothing. `--hook` makes the script exit 0 even when a check fails, because the
 output only reaches the context on exit 0; the output then ends with a line asking Claude to tell the user. Without
@@ -139,30 +139,20 @@ doc that `detail` points to, not in a JSON field.
   shows before a test.
 - `installed`: tools, mods or services outside the repo that change results.
 
-## Session routine for `CLAUDE.md`
+## Session routine
+
+The routine for working in a project is `session_routine.md`, next to this file. The session start check prints it at
+the top of its output, so every project gets the current version. A project's `CLAUDE.md` holds this pointer instead
+of a copy, so that the routine carries `CLAUDE.md`'s weight:
 
 ```markdown
 ## Session routine
 
-- **Start:** the gibbon plugin's session start check runs on startup and its output is in context; if it isn't, tell
-  the user the gibbon plugin isn't enabled. Raise any problems it reports with the user, then read `docs/status.md`.
-  Work on the `next` items in `docs/state/tasks.json` unless the user says otherwise.
-- **Queries:** list, show and trace tasks and tests with `tools/tasks.py`, not one-off scripts over the JSON.
-- **Starting a task:** agree its `done_when` with the user when setting it `in_progress`. Check the open questions in
-  the findings docs the task touches; one it depends on becomes a task or a `done_when` line now.
-- **During:** update a JSON entry in `docs/state/` when its state changes, not at the end. Write an open question into
-  its findings doc, and a note for an upcoming task into the doc its `detail` points to, when it comes up. When a
-  result answers an open question, take it off its list in the same commit. Commit after each finished step, with a
-  message saying what changed and why.
-- **Done:** record in `evidence` what showed it: a test, a command and its output, or the user's confirmation. For
-  code, scripts or data Claude can check without the user, a review by a session that didn't write it (`/code-review`,
-  or a read-only reviewer subagent given the task's `done_when`, reporting correctness gaps only and skipping style)
-  can help; skip it where it adds cost without catching anything.
-- **End** (the `gibbon:wrap-up` skill): set statuses and `next` flags, add or fill `tests.json` entries, update
-  `environment.json`, rewrite `docs/status.md`, commit. Don't end a session with uncommitted work.
-- **Rules:** never delete or reword a task or test entry, or change a run test's `checks`, without the user's agreement.
-  Mark findings Verified (with the build) or Hypothesis (with a confidence: low, medium or high).
+Follow the session routine the gibbon plugin's session start check prints at startup; it is part of these
+instructions. If its output isn't in context, tell the user the gibbon plugin isn't enabled.
 ```
+
+Project-specific rules go in `CLAUDE.md`'s Working notes, not in the routine.
 
 ## Open questions
 
@@ -184,7 +174,8 @@ doesn't go there.
 Projects hold a copy of `tasks.py`, which falls behind when the template changes. The session start check notes when
 `tools/tasks.py` is missing or differs from its template. It also notes per-project scripts from earlier versions of
 this layout, `tools/session_start.py` and `tools/check_state.py`, and a `SessionStart` hook in `.claude/settings.json`
-that runs them; the plugin replaces them, and `gibbon:project-state-migrate` removes them.
+that runs them, and a copy of the session routine in `CLAUDE.md`; the plugin replaces them, and
+`gibbon:project-state-migrate` removes them.
 
 ## Memories
 

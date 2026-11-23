@@ -1,5 +1,5 @@
-"""Print what a new session in a docs/state/ project needs before it starts work: git state, environment checks,
-notes on the project's scripts, and the state check with the tasks to pick up.
+"""Print what a new session in a docs/state/ project needs before it starts work: the session routine, git state,
+environment checks, notes on the project's scripts, and the state check with the tasks to pick up.
 
 Usage: python session_start.py [--hook] [PROJECT_DIR]
 
@@ -18,6 +18,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TEMPLATES = HERE.parent / "skills" / "project-scaffold" / "templates"
+ROUTINE = HERE.parent / "skills" / "project-scaffold" / "session_routine.md"
 # Scripts each project copies unchanged from TEMPLATES.
 COPIED_SCRIPTS = ("tasks.py",)
 # Scripts projects held under earlier versions of the layout, which this script and check_state.py replace.
@@ -73,7 +74,7 @@ def project_checks(root, env):
 
 def script_notes(root):
     """Return a note for each of COPIED_SCRIPTS missing from tools/ or differing from its template, and one listing
-    the superseded scripts and project SessionStart hook still in the project."""
+    the superseded scripts, project SessionStart hook and copied session routine still in the project."""
 
     def norm(path):
         return path.read_bytes().replace(b"\r\n", b"\n")
@@ -89,6 +90,9 @@ def script_notes(root):
     settings = root / ".claude" / "settings.json"
     if settings.is_file() and "session_start.py" in settings.read_text(encoding="utf-8"):
         leftovers.append("the SessionStart hook in .claude/settings.json")
+    claude_md = root / "CLAUDE.md"
+    if claude_md.is_file() and "- **Start:**" in claude_md.read_text(encoding="utf-8"):
+        leftovers.append("the copy of the session routine in CLAUDE.md")
     if leftovers:
         notes.append(f"the gibbon plugin replaces {', '.join(leftovers)}")
     if notes:
@@ -106,7 +110,10 @@ def main():
         print(f"{root} has no docs/state/; nothing to check")
         return 1
 
-    print("== git")
+    print("== session routine (from the gibbon plugin; part of this project's instructions)")
+    print(ROUTINE.read_text(encoding="utf-8").rstrip())
+
+    print("\n== git")
     print(run(root, "git", "status", "--short") or "(clean)")
     print(run(root, "git", "log", "--oneline", "-5"))
 

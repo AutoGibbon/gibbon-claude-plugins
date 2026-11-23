@@ -82,7 +82,9 @@ changelog or git history.
    each open question in one findings doc and link to it from elsewhere. Replace test index tables with a link to
    `tests.json`, keeping any reference material (log formats, conventions, how to write a test). Move design detail
    out of status docs into a design doc.
-5. **Update `CLAUDE.md`** with the Session routine from `layout.md` and the new file locations. Update skills from the
+5. **Update `CLAUDE.md`** with the Session routine pointer from `layout.md`, in place of any copy of the routine, and
+   the new file locations. Show the user each project-specific rule in a replaced routine, and move the ones they keep
+   to Working notes. Update skills from the
    audit so they write `docs/state/`. Update or delete the memories from the audit so they name the new files, and
    move state held in memory into `environment.json`; update `MEMORY.md` to match.
 6. **Check:** run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, read only `docs/status.md`, and tell the
