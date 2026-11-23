@@ -14,7 +14,7 @@ notes, git as the history, and a script that checks the environment at session s
 | Current focus, half-done work, gotchas for the next session | `docs/status.md` | Freeform Markdown, under about 60 lines | Rewritten at the end of each session, not appended to |
 | What happened and when | git commits, test files, the project's changelog | — | Never copied back into `status.md` |
 | Session start check | The gibbon plugin's `scripts/session_start.py`, which runs the plugin's `scripts/check_state.py`, run by the plugin's `SessionStart` hook | Script | Read-only |
-| The project's own environment checks | `tools/project_checks.py`: `check(root, env)` returns a message for each check that fails | Script | Read-only |
+| The project's own environment checks | `tools/project_checks.py`: `check(root, env)` returns a message for each check that fails, or `(problems, notes)` where notes don't fail the check | Script | Read-only |
 | Task and test queries | The gibbon plugin's `scripts/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it) and `tests` | Script | Read-only |
 | Edit checks | The gibbon plugin's `PreToolUse` and `PostToolUse` hooks on edits to `docs/state/` | Hook | — |
 

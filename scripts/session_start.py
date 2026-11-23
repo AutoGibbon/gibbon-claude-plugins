@@ -59,17 +59,23 @@ def artefact_checks(root, env):
 
 
 def project_checks(root, env):
-    """Run check(root, env) from the project's tools/project_checks.py, if it has one; return the problems found."""
+    """Run check(root, env) from the project's tools/project_checks.py, if it has one; return (problems, notes).
+
+    check() returns a list of problems, or a (problems, notes) tuple.
+    """
     path = root / "tools" / "project_checks.py"
     if not path.is_file():
-        return []
+        return [], []
     try:
         spec = importlib.util.spec_from_file_location("project_checks", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        return list(module.check(root, env))
+        result = module.check(root, env)
+        if isinstance(result, tuple):
+            return list(result[0]), list(result[1])
+        return list(result), []
     except Exception as e:  # Report a broken project check as a problem so the rest of the check still runs.
-        return [f"tools/project_checks.py failed: {type(e).__name__}: {e}"]
+        return [f"tools/project_checks.py failed: {type(e).__name__}: {e}"], []
 
 
 def script_notes(root):
@@ -120,16 +126,16 @@ def main():
     if status and hook and source != "compact":
         print("  note: uncommitted changes from before this session; ask the user whether to commit them")
 
-    problems = []
+    problems, notes = [], []
     print("\n== environment")
     env_path = root / "docs" / "state" / "environment.json"
     if env_path.is_file():
         env = json.loads(env_path.read_text(encoding="utf-8"))
-        problems += project_checks(root, env)
+        problems, notes = project_checks(root, env)
         problems += artefact_checks(root, env)
     for p in problems:
         print(f"  ! {p}")
-    notes = script_notes(root)
+    notes += script_notes(root)
     for note in notes:
         print(f"  note: {note}")
     if not problems and not notes:
