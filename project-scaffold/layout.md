@@ -1,0 +1,187 @@
+# Project state layout
+
+Shared by the `project-scaffold` and `project-state-migrate` skills. It follows Anthropic's guidance for long-horizon
+work across context windows: task and test status in JSON with a fixed schema, short freeform progress notes, git as
+the history, and a script that checks the environment at session start.
+
+## Files
+
+| What | Where | Format | Who changes what |
+| --- | --- | --- | --- |
+| Work items: workstreams, tasks, spec and acceptance items, release steps | `docs/state/tasks.json` | JSON | Claude changes `status`, `evidence`, `blocked_by`, `next` and `updated`. Adding, removing or rewording an item needs the user's agreement |
+| Tests | `docs/state/tests.json`, plus one `.md` file per test with its steps and results | JSON index, Markdown detail | Claude adds entries and fills in results. A test's `checks` doesn't change after it runs |
+| Environment: builds, deployed artefacts, installed tools or mods that affect tests | `docs/state/environment.json` | JSON | Updated whenever something is built, deployed, installed or toggled |
+| Current focus, half-done work, gotchas for the next session | `docs/status.md` | Freeform Markdown, under about 60 lines | Rewritten at the end of each session, not appended to |
+| What happened and when | git commits, test files, the project's changelog | — | Never copied back into `status.md` |
+| Session start check | `tools/session_start.py`, which runs `tools/check_state.py`, run by a `SessionStart` hook in `.claude/settings.json` | Script | Read-only |
+| Task and test queries | `tools/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it) and `tests` | Script | Read-only |
+
+Templates for every file are in `~/.claude/skills/project-scaffold/templates/`. `check_state.py` and `tasks.py` are
+copied unchanged; `session_start.py` gets the project's own environment checks in `project_checks()`.
+
+## How strict
+
+`check_state.py` fails only on broken structure: a missing or invalid file, a bad id or status, or a reference to a
+task, test, commit or path that doesn't exist. Gaps in process (no `done_when` on work in progress, `done` with no
+evidence, a run test with no result, `blocked` with no `blocked_by`) are warnings, so they show at every session start
+without stopping work. Keep it that way: structural errors break the next session's reading of the state, while
+process gaps are for the user to weigh.
+
+## Session start hook
+
+`.claude/settings.json` (committed, from `templates/settings.json`) runs `tools/session_start.py --hook` on startup,
+`/clear` and compaction, and Claude Code adds its output to the session's context. `--hook` makes the script exit 0
+even when a check fails, because the output only reaches the context on exit 0; the output then ends with a line
+asking Claude to tell the user. The scripts use only the standard library, so any `python` on `PATH` runs them. Merge
+the hook into an existing `.claude/settings.json` rather than replacing the file. A new or changed hook takes effect
+in the next session.
+
+## `tasks.json`
+
+```json
+{
+  "schema": 1,
+  "statuses": ["todo", "in_progress", "blocked", "done", "dropped"],
+  "items": [
+    {
+      "id": "fog-weather-prefab-patch",
+      "workstream": "dawn-fog",
+      "title": "Data patch adding a density-0 fog volume to weather.prefab",
+      "status": "todo",
+      "next": true,
+      "done_when": [
+        "weather.prefab extracts with the added FogComponent and the patched file loads in game",
+        "WeatherMod's fog probe finds the added volume at density 0 in every weather stage"
+      ],
+      "depends_on": [],
+      "evidence": [],
+      "detail": "docs/findings/fog-volumes.md#writable-fields",
+      "updated": "2026-11-22"
+    }
+  ]
+}
+```
+
+- `id`: stable kebab-case. Never reuse or rename one.
+- `done_when`: a line or two on what makes the item done, agreed with the user when the item starts. For exploratory
+  work it can be the question the work answers. Items finished before the project used this field don't need one.
+- `evidence`: what shows the current `status`: test ids, commit hashes, repo paths with an optional `#anchor`, or
+  short text such as `run: pytest -q -> 12 passed` or `user 2026-11-22: rain looks right at 1.0`. Ids, hashes and
+  paths are checked; text isn't. When the only check was Claude's own review, say so, so the item can be revisited.
+- `next`: true on the items to pick up next. It replaces every "Next:" line in prose docs.
+- `blocked_by`: required when `status` is `blocked`; free text naming what blocks it, such as "tester must reach a
+  ship".
+- `detail`: optional repo path, with an optional `#anchor`, to the doc that explains the item.
+- `depends_on`: ids of tasks that must be done first. Order the docs give in prose ("then", "after", "first") goes
+  here, so it isn't kept only in prose.
+
+Use only the fields shown in these schemas; `check_state.py` warns on others. Explanations, plans and paths go in the
+doc that `detail` points to, not in a JSON field.
+
+## `tests.json`
+
+```json
+{
+  "schema": 1,
+  "statuses": ["planned", "passed", "failed", "partial", "inconclusive", "not_run", "aborted"],
+  "tests": [
+    {
+      "id": "test-33",
+      "file": "docs/tests/test-33.md",
+      "checks": "Fog volume colour and noise through the game's setters",
+      "status": "passed",
+      "date": "2026-11-22",
+      "build": "0x6AFDC0CF",
+      "tasks": ["fog-writable-fields"],
+      "result": "Setters work safely; _color is B, G, R, A; noise ratio 0 fills, 1 leaves sparse patches"
+    }
+  ]
+}
+```
+
+- `result`: one line. Detail stays in the test's `.md` file.
+- `build`: the version or build the test ran on, when results depend on it; otherwise omit.
+- `tasks`: ids from `tasks.json` that the test bears on.
+
+## `environment.json`
+
+```json
+{
+  "schema": 1,
+  "facts": {
+    "exe_timestamp": "0x6AFDC0CF",
+    "exe_seen": "2026-11-20"
+  },
+  "artefacts": [
+    {
+      "name": "WeatherMod.asi",
+      "built": "build/WeatherMod/WeatherMod.asi",
+      "deployed": "E:/Tools/mods/crimson desert/DMM/mods/WeatherMod.asi",
+      "commit": "cbbcbe3",
+      "date": "2026-11-22",
+      "enabled": true,
+      "notes": "Numpad keys; settings in bin64/WeatherMod.toml"
+    }
+  ],
+  "installed": [
+    { "name": "RenoDX", "on": true, "notes": "Changes rendering; on for all tests" }
+  ]
+}
+```
+
+- `facts`: whatever the project's checks compare against, such as a game build, a tool version or a service URL.
+- `artefacts`: `session_start.py` compares `built` and `deployed` by hash when both are set, so a stale deploy shows
+  before a test.
+- `installed`: tools, mods or services outside the repo that change results.
+
+## Session routine for `CLAUDE.md`
+
+```markdown
+## Session routine
+
+- **Start:** the `SessionStart` hook runs `tools/session_start.py` and its output is in context; if it isn't, run the
+  script. Raise any problems it reports with the user, then read `docs/status.md`. Work on the `next` items in
+  `docs/state/tasks.json` unless the user says otherwise.
+- **Queries:** list, show and trace tasks and tests with `tools/tasks.py`, not one-off scripts over the JSON.
+- **Starting a task:** agree its `done_when` with the user when setting it `in_progress`. Check the open questions in
+  the findings docs the task touches; one it depends on becomes a task or a `done_when` line now.
+- **During:** update a JSON entry in `docs/state/` when its state changes, not at the end. Write an open question into
+  its findings doc, and a note for an upcoming task into the doc its `detail` points to, when it comes up. When a
+  result answers an open question, take it off its list in the same commit. Commit after each finished step, with a
+  message saying what changed and why.
+- **Done:** record in `evidence` what showed it: a test, a command and its output, or the user's confirmation. For
+  code, scripts or data Claude can check without the user, a review by a session that didn't write it (`/code-review`,
+  or a read-only reviewer subagent given the task's `done_when`, reporting correctness gaps only and skipping style)
+  can help; skip it where it adds cost without catching anything.
+- **End** (the `wrap-up` skill): set statuses and `next` flags, add or fill `tests.json` entries, update
+  `environment.json`, rewrite `docs/status.md`, commit. Don't end a session with uncommitted work.
+- **Rules:** never delete or reword a task or test entry, or change a run test's `checks`, without the user's agreement.
+  Mark findings Verified (with the build) or Hypothesis (with a confidence: low, medium or high).
+```
+
+## Open questions
+
+Open questions live in the findings docs, in a "Still open" or "Open questions" section next to the evidence that
+bears on them, not in `tasks.json`. A question becomes a task only when planned work needs its answer, which the
+"Starting a task" step checks. List each question once, in one findings doc; other docs link to it.
+
+## What `status.md` holds
+
+`status.md` names each upcoming task in a line or two and links to its notes; it doesn't hold them. Notes a task
+needs before it starts (topics to raise, candidate ideas, scope questions for the user) go in a "To settle" list in
+the doc its `detail` points to, next to the section the task will fill, and its `detail` links to that section. Facts
+learned along the way go in findings. Gotchas keep only traps in how the project is worked (keys, switches, deploy
+steps, conversions), linking to the finding behind each; a fact about the game or code that a finding already holds
+doesn't go there.
+
+## Templates in projects
+
+Projects hold copies of `check_state.py` and `tasks.py` and a `session_start.py` written from the template, so they
+fall behind when the templates change. `session_start.py` notes when `tools/check_state.py` differs from the template, and the
+`project-state-migrate` audit reports both scripts and the hook against the templates.
+
+## Memories
+
+Project memories (`~/.claude/projects/<project-slug>/memory/`) hold preferences and workflow rules, not state. A
+memory that records installed or deployed state belongs in `environment.json`; one that names a status file or index
+row must name the files above.
