@@ -1,12 +1,12 @@
 ---
 name: project-state-migrate
-description: Audit an existing project's status, next-step and test-result tracking, and optionally migrate it to the project state layout - docs/state/ JSON for tasks, tests and environment, a short docs/status.md, a session start check, and memories and skills pointing at them. Use when the user says "audit the state docs", "migrate this project's status", "bring state tracking in line", or asks where a project's status tracking falls short. Audit alone changes nothing. Not for new projects (use project-scaffold).
+description: Audit an existing project's status, next-step and test-result tracking, and optionally migrate it to the project state layout - docs/state/ JSON for tasks, tests and environment, a short docs/status.md, a session start check, and memories and skills pointing at them. Use when the user says "audit the state docs", "migrate this project's status", "bring state tracking in line", or asks where a project's status tracking falls short. Audit alone changes nothing. Not for new projects (use gibbon:project-scaffold).
 ---
 
 # Audit and migrate project state
 
-The target layout, schemas and rules are in `~/.claude/skills/project-scaffold/layout.md`; read it first. Templates are
-in `~/.claude/skills/project-scaffold/templates/`.
+The target layout, schemas and rules are in `${CLAUDE_PLUGIN_ROOT}/skills/project-scaffold/layout.md`; read it first.
+Templates are in `${CLAUDE_PLUGIN_ROOT}/skills/project-scaffold/templates/`.
 
 The user may hand you an earlier audit for this project. Use it as a starting point, but check each point against the
 current files, since they may have changed.
@@ -28,7 +28,7 @@ Read:
 If the project already has `docs/state/`, also compare `tools/check_state.py` and `tools/tasks.py` with the
 templates (report `tasks.py` as missing if it isn't there), and the project's
 `tools/session_start.py` and `.claude/settings.json` with the template's features (`--hook`, artefact hashes, the
-template note, the `SessionStart` hook).
+`SessionStart` hook).
 
 Report, grouped by the layout's files:
 

@@ -14,29 +14,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 ENV = ROOT / "docs" / "state" / "environment.json"
-TEMPLATES = Path.home() / ".claude" / "skills" / "project-scaffold" / "templates"
-# Scripts each project copies unchanged from TEMPLATES.
-COPIED_SCRIPTS = ("check_state.py", "tasks.py")
-
-
-def template_notes():
-    """Return a note for each of COPIED_SCRIPTS that is missing from tools/ or differs from its template."""
-
-    def norm(path):
-        return path.read_bytes().replace(b"\r\n", b"\n")
-
-    notes = []
-    for name in COPIED_SCRIPTS:
-        ours, template = ROOT / "tools" / name, TEMPLATES / name
-        if not template.is_file():
-            continue
-        if not ours.is_file():
-            notes.append(f"tools/{name} is missing; copy it from the project-scaffold template")
-        elif norm(ours) != norm(template):
-            notes.append(
-                f"tools/{name} differs from the project-scaffold template (see the project-state-migrate audit)"
-            )
-    return notes
 
 
 def run(*args):
@@ -93,10 +70,7 @@ def main():
         problems += artefact_checks(env)
     for p in problems:
         print(f"  ! {p}")
-    notes = template_notes()
-    for note in notes:
-        print(f"  note: {note}")
-    if not problems and not notes:
+    if not problems:
         print("  ok")
 
     print("\n== state", flush=True)

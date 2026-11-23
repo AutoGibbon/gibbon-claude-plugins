@@ -56,7 +56,7 @@ point to the text. Only the MISSING items need writing.
 Write for a reader who wasn't here: name the actual files, functions, values and commands. Keep each doc's existing
 length and tone; this is an update, not a rewrite, except for `docs/status.md` in a `docs/state/` project.
 
-If the project has `docs/state/` (the layout in `~/.claude/skills/project-scaffold/layout.md`):
+If the project has `docs/state/` (the layout in `${CLAUDE_PLUGIN_ROOT}/skills/project-scaffold/layout.md`):
 
 - Set task statuses, evidence and `next` flags in `tasks.json`, with what showed each `done`: a test, a command and
   its output, or the user's confirmation.

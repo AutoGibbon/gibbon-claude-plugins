@@ -1,8 +1,8 @@
 # Project state layout
 
-Shared by the `project-scaffold` and `project-state-migrate` skills. It follows Anthropic's guidance for long-horizon
-work across context windows: task and test status in JSON with a fixed schema, short freeform progress notes, git as
-the history, and a script that checks the environment at session start.
+Shared by the `gibbon:project-scaffold` and `gibbon:project-state-migrate` skills. It follows Anthropic's guidance for
+long-horizon work across context windows: task and test status in JSON with a fixed schema, short freeform progress
+notes, git as the history, and a script that checks the environment at session start.
 
 ## Files
 
@@ -16,7 +16,7 @@ the history, and a script that checks the environment at session start.
 | Session start check | `tools/session_start.py`, which runs `tools/check_state.py`, run by a `SessionStart` hook in `.claude/settings.json` | Script | Read-only |
 | Task and test queries | `tools/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it) and `tests` | Script | Read-only |
 
-Templates for every file are in `~/.claude/skills/project-scaffold/templates/`. `check_state.py` and `tasks.py` are
+Templates for every file are in `templates/` next to this file. `check_state.py` and `tasks.py` are
 copied unchanged; `session_start.py` gets the project's own environment checks in `project_checks()`.
 
 ## How strict
@@ -153,7 +153,7 @@ doc that `detail` points to, not in a JSON field.
   code, scripts or data Claude can check without the user, a review by a session that didn't write it (`/code-review`,
   or a read-only reviewer subagent given the task's `done_when`, reporting correctness gaps only and skipping style)
   can help; skip it where it adds cost without catching anything.
-- **End** (the `wrap-up` skill): set statuses and `next` flags, add or fill `tests.json` entries, update
+- **End** (the `gibbon:wrap-up` skill): set statuses and `next` flags, add or fill `tests.json` entries, update
   `environment.json`, rewrite `docs/status.md`, commit. Don't end a session with uncommitted work.
 - **Rules:** never delete or reword a task or test entry, or change a run test's `checks`, without the user's agreement.
   Mark findings Verified (with the build) or Hypothesis (with a confidence: low, medium or high).
@@ -177,8 +177,9 @@ doesn't go there.
 ## Templates in projects
 
 Projects hold copies of `check_state.py` and `tasks.py` and a `session_start.py` written from the template, so they
-fall behind when the templates change. `session_start.py` notes when `tools/check_state.py` differs from the template, and the
-`project-state-migrate` audit reports both scripts and the hook against the templates.
+fall behind when the templates change. The gibbon plugin's `SessionStart` hook notes when `tools/check_state.py` or
+`tools/tasks.py` is missing or differs from its template, and the `gibbon:project-state-migrate` audit reports both
+scripts and the hook against the templates.
 
 ## Memories
 

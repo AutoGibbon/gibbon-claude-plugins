@@ -1,18 +1,19 @@
 ---
 name: project-scaffold
-description: Set up a new project so Claude can work on it across many sessions - CLAUDE.md, docs/state/ JSON for tasks, tests and environment, a short docs/status.md, a session start check script, .gitignore and git. Use when the user says "scaffold a project", "set up a new project", "start a project", or opens a directory with no CLAUDE.md and no state docs and asks to begin work there. Not for a project that already records its status (use project-state-migrate), nor for writing a CLAUDE.md from existing code (/init).
+description: Set up a new project so Claude can work on it across many sessions - CLAUDE.md, docs/state/ JSON for tasks, tests and environment, a short docs/status.md, a session start check script, .gitignore and git. Use when the user says "scaffold a project", "set up a new project", "start a project", or opens a directory with no CLAUDE.md and no state docs and asks to begin work there. Not for a project that already records its status (use gibbon:project-state-migrate), nor for writing a CLAUDE.md from existing code (/init).
 ---
 
 # Scaffold a project
 
-Create the project state layout described in `~/.claude/skills/project-scaffold/layout.md`. Read it first; it defines
-every file, schema and rule used here. Templates are in `~/.claude/skills/project-scaffold/templates/`.
+Create the project state layout described in `${CLAUDE_PLUGIN_ROOT}/skills/project-scaffold/layout.md`. Read it
+first; it defines every file, schema and rule used here. Templates are in
+`${CLAUDE_PLUGIN_ROOT}/skills/project-scaffold/templates/`.
 
 ## 1. Check the directory
 
 List it. If it has a `CLAUDE.md`, a `docs/status.md` or any other status, plan or test doc, stop and suggest the
-`project-state-migrate` skill instead. If it has code but no docs, scaffold around the code, and read enough of it to
-fill `CLAUDE.md`'s Paths, Layout and Build sections.
+`gibbon:project-state-migrate` skill instead. If it has code but no docs, scaffold around the code, and read enough of
+it to fill `CLAUDE.md`'s Paths, Layout and Build sections.
 
 ## 2. Ask
 
