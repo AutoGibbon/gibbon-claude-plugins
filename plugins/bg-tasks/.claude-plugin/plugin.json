@@ -1,6 +1,7 @@
 {
   "name": "bg-tasks",
   "version": "0.3.0",
+  "license": "MIT",
   "description": "Shows the background tasks and subagents still running in a row above the prompt as a column grid, subagents with tokens, cost, model and time",
   "types": "./types/index.d.ts"
 }
