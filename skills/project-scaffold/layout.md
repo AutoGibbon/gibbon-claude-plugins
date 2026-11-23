@@ -13,11 +13,13 @@ notes, git as the history, and a script that checks the environment at session s
 | Environment: builds, deployed artefacts, installed tools or mods that affect tests | `docs/state/environment.json` | JSON | Updated whenever something is built, deployed, installed or toggled |
 | Current focus, half-done work, gotchas for the next session | `docs/status.md` | Freeform Markdown, under about 60 lines | Rewritten at the end of each session, not appended to |
 | What happened and when | git commits, test files, the project's changelog | — | Never copied back into `status.md` |
-| Session start check | `tools/session_start.py`, which runs `tools/check_state.py`, run by a `SessionStart` hook in `.claude/settings.json` | Script | Read-only |
+| Session start check | The gibbon plugin's `scripts/session_start.py`, which runs the plugin's `scripts/check_state.py`, run by the plugin's `SessionStart` hook | Script | Read-only |
+| The project's own environment checks | `tools/project_checks.py`: `check(root, env)` returns a message for each check that fails | Script | Read-only |
 | Task and test queries | `tools/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it) and `tests` | Script | Read-only |
 
-Templates for every file are in `templates/` next to this file. `check_state.py` and `tasks.py` are
-copied unchanged; `session_start.py` gets the project's own environment checks in `project_checks()`.
+Templates for every project file are in `templates/` next to this file. `tasks.py` is copied unchanged;
+`project_checks.py` gets the project's own checks, and a project with none leaves it out. The plugin's scripts are in
+`scripts/`, two folders above this file.
 
 ## How strict
 
@@ -27,14 +29,17 @@ evidence, a run test with no result, `blocked` with no `blocked_by`) are warning
 without stopping work. Keep it that way: structural errors break the next session's reading of the state, while
 process gaps are for the user to weigh.
 
-## Session start hook
+## Session start check
 
-`.claude/settings.json` (committed, from `templates/settings.json`) runs `tools/session_start.py --hook` on startup,
-`/clear` and compaction, and Claude Code adds its output to the session's context. `--hook` makes the script exit 0
-even when a check fails, because the output only reaches the context on exit 0; the output then ends with a line
-asking Claude to tell the user. The scripts use only the standard library, so any `python` on `PATH` runs them. Merge
-the hook into an existing `.claude/settings.json` rather than replacing the file. A new or changed hook takes effect
-in the next session.
+The gibbon plugin's `SessionStart` hook runs `scripts/session_start.py --hook` on startup, `/clear` and compaction in
+every project, and Claude Code adds its output to the session's context. In a project with `docs/state/` it prints git
+status and recent commits, the problems `tools/project_checks.py` and the artefact hash comparison find, notes on
+`tools/tasks.py` and on per-project scripts the plugin replaces, and `check_state.py`'s output, which ends with the
+tasks to pick up; elsewhere it prints nothing. `--hook` makes the script exit 0 even when a check fails, because the
+output only reaches the context on exit 0; the output then ends with a line asking Claude to tell the user. Without
+`--hook` it exits 1 on a failed check. Skills run it from the project directory as
+`python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`. The scripts use only the standard library, so any `python`
+on `PATH` runs them.
 
 ## `tasks.json`
 
@@ -129,9 +134,9 @@ doc that `detail` points to, not in a JSON field.
 }
 ```
 
-- `facts`: whatever the project's checks compare against, such as a game build, a tool version or a service URL.
-- `artefacts`: `session_start.py` compares `built` and `deployed` by hash when both are set, so a stale deploy shows
-  before a test.
+- `facts`: whatever `tools/project_checks.py` compares against, such as a game build, a tool version or a service URL.
+- `artefacts`: the session start check compares `built` and `deployed` by hash when both are set, so a stale deploy
+  shows before a test.
 - `installed`: tools, mods or services outside the repo that change results.
 
 ## Session routine for `CLAUDE.md`
@@ -139,9 +144,9 @@ doc that `detail` points to, not in a JSON field.
 ```markdown
 ## Session routine
 
-- **Start:** the `SessionStart` hook runs `tools/session_start.py` and its output is in context; if it isn't, run the
-  script. Raise any problems it reports with the user, then read `docs/status.md`. Work on the `next` items in
-  `docs/state/tasks.json` unless the user says otherwise.
+- **Start:** the gibbon plugin's session start check runs on startup and its output is in context; if it isn't, tell
+  the user the gibbon plugin isn't enabled. Raise any problems it reports with the user, then read `docs/status.md`.
+  Work on the `next` items in `docs/state/tasks.json` unless the user says otherwise.
 - **Queries:** list, show and trace tasks and tests with `tools/tasks.py`, not one-off scripts over the JSON.
 - **Starting a task:** agree its `done_when` with the user when setting it `in_progress`. Check the open questions in
   the findings docs the task touches; one it depends on becomes a task or a `done_when` line now.
@@ -176,10 +181,10 @@ doesn't go there.
 
 ## Templates in projects
 
-Projects hold copies of `check_state.py` and `tasks.py` and a `session_start.py` written from the template, so they
-fall behind when the templates change. The gibbon plugin's `SessionStart` hook notes when `tools/check_state.py` or
-`tools/tasks.py` is missing or differs from its template, and the `gibbon:project-state-migrate` audit reports both
-scripts and the hook against the templates.
+Projects hold a copy of `tasks.py`, which falls behind when the template changes. The session start check notes when
+`tools/tasks.py` is missing or differs from its template. It also notes per-project scripts from earlier versions of
+this layout, `tools/session_start.py` and `tools/check_state.py`, and a `SessionStart` hook in `.claude/settings.json`
+that runs them; the plugin replaces them, and `gibbon:project-state-migrate` removes them.
 
 ## Memories
 

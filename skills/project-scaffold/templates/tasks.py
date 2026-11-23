@@ -7,7 +7,7 @@ Usage:
   python tools/tasks.py tests [--status S]
 
 --root REPO_ROOT before the command reads another project; by default it's the folder above this script's.
-Reads only; tools/check_state.py validates the files.
+Reads only; the gibbon plugin's session start check validates the files.
 """
 
 import argparse

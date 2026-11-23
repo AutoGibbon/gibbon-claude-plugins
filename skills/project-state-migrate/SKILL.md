@@ -25,10 +25,10 @@ Read:
 - the files the environment claims describe: deploy folders, installed tools or mods, build outputs. Compare them with
   what the docs say, and list anything present that the docs don't mention.
 
-If the project already has `docs/state/`, also compare `tools/check_state.py` and `tools/tasks.py` with the
-templates (report `tasks.py` as missing if it isn't there), and the project's
-`tools/session_start.py` and `.claude/settings.json` with the template's features (`--hook`, artefact hashes, the
-`SessionStart` hook).
+If the project already has `docs/state/`, also run the session start check,
+`python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, from the project directory and report its problems and
+notes: `tools/tasks.py` missing or behind its template, and per-project scripts or a `SessionStart` hook the plugin
+replaces. Check that `tools/project_checks.py` makes the environment checks the docs ask for by hand.
 
 Report, grouped by the layout's files:
 
@@ -38,7 +38,8 @@ Report, grouped by the layout's files:
    checks with no status, work in progress with no stated definition of done, order between tasks kept only in prose,
    deployed state in prose, design or changelog content in a status doc, status words or dated history in other docs
    ("Answered:", "Partly answered", "settled 2026-11-16", "seen in tests 3-5"), the same open question listed in more
-   than one place, project scripts behind the templates, no session start check or hook.
+   than one place, `tools/tasks.py` behind its template, per-project session start scripts or hook the plugin
+   replaces, environment checks done by hand that `tools/project_checks.py` could make.
 
    Name what already works in the project's tracking, and keep it: the aim is to move state into the layout, not to
    add process the project has managed without.
@@ -67,11 +68,13 @@ changelog or git history.
    layout's fields. For an artefact's `commit`, find the commit whose build matches the deployed file, not the one
    the docs name. Show the user `tasks.json`, including the `next` flags, the proposed `done_when` and the inferred
    statuses, and stop until they accept it.
-3. **Add the scripts:** copy `check_state.py` and `tasks.py` unchanged to `tools/`, and write `tools/session_start.py` from the
-   template with `project_checks()` covering the checks the docs ask for by hand (build or version changes, stale
-   extracts, tools or venvs the project relies on). Run it until it passes. Add the `SessionStart` hook from
-   `templates/settings.json` to `.claude/settings.json`, merging it into the file if it exists, and pipe-test it:
-   `echo '{}' | CLAUDE_PROJECT_DIR="$PWD" python "$PWD/tools/session_start.py" --hook` should exit 0.
+3. **Add the scripts:** copy `tasks.py` unchanged to `tools/`, and write `tools/project_checks.py` from the template
+   with `check()` covering the checks the docs ask for by hand (build or version changes, stale extracts, tools or
+   venvs the project relies on); leave it out if there are none. If the project has a `tools/session_start.py` from
+   an earlier version of the layout, move its `project_checks()` body into `check()`, using the `root` parameter
+   where it used `ROOT`. Then delete `tools/session_start.py` and `tools/check_state.py`, and remove the
+   `SessionStart` hook that runs them from `.claude/settings.json`, deleting the file if nothing else is left in it.
+   Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` until it passes with no notes.
 4. **Trim the prose docs.** Cut `docs/status.md` to focus, half-done work and gotchas, linking to `docs/state/`.
    In other docs, replace "Next" lists and any status wording or dated history ("done", "(next)", "Answered:",
    "Partly answered", "settled on", "seen in tests") with a link to `tasks.json`; keep their reasoning and decisions.
@@ -82,9 +85,9 @@ changelog or git history.
 5. **Update `CLAUDE.md`** with the Session routine from `layout.md` and the new file locations. Update skills from the
    audit so they write `docs/state/`. Update or delete the memories from the audit so they name the new files, and
    move state held in memory into `environment.json`; update `MEMORY.md` to match.
-6. **Check:** run `tools/session_start.py`, read only `docs/status.md`, and tell the user what the next step is. Ask
-   whether it matches what they expect, and tell them the hook runs from the next session on; its output should then
-   be in context without running anything. Recommend an audit-only run of this skill in a fresh session: a session
+6. **Check:** run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, read only `docs/status.md`, and tell the
+   user what the next step is. Ask whether it matches what they expect, and tell them the gibbon plugin's hook shows
+   the check's output at the start of the next session without running anything. Recommend an audit-only run of this skill in a fresh session: a session
    that didn't do the migration finds what this one can't see in its own work.
 
 Reply with the files changed, one line each, and the commits made.

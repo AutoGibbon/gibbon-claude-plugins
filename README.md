@@ -7,8 +7,9 @@ Claude Code plugin for project state tracking. This repo is both the plugin and 
 - `gibbon:project-state-migrate` - audit an existing project's state tracking and optionally migrate it to the layout.
 - `gibbon:wrap-up` - record session state and commit before starting a fresh session.
 
-A `SessionStart` hook notes when a `docs/state/` project's `tools/check_state.py` or `tools/tasks.py` is missing or
-differs from the template.
+A `SessionStart` hook runs `scripts/session_start.py` in every project with `docs/state/`: git status, the
+project's `tools/project_checks.py`, deployed artefact hashes, and `scripts/check_state.py`, which validates the state
+files and lists the next tasks.
 
 ## Install
 

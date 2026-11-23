@@ -63,7 +63,8 @@ If the project has `docs/state/` (the layout in `${CLAUDE_PLUGIN_ROOT}/skills/pr
 - Add or fill `tests.json` entries, and update `environment.json`.
 - Rewrite `docs/status.md` as focus, half-done work and gotchas, rather than appending to it. Put notes for upcoming
   tasks in their `detail` docs and facts in findings, as "What `status.md` holds" in `layout.md` says.
-- Run `tools/session_start.py`. Fix its errors before committing. Report its warnings to the user, such as a task
+- Run the session start check, `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, from the project
+  directory. Fix its errors before committing. Report its warnings to the user, such as a task
   started this session with no `done_when`, rather than filling them in without asking.
 
 ## 4. Check before committing
@@ -72,8 +73,9 @@ If the project has `docs/state/` (the layout in `${CLAUDE_PLUGIN_ROOT}/skills/pr
   without noticing, so spawn a read-only subagent and give it only this prompt, with no summary of the session or
   hint of what you expect:
 
-  > This is the start of a fresh session in this project. Follow the project's CLAUDE.md startup routine (run
-  > `tools/session_start.py` if it exists), then read what it points you to for the next task. Don't change any
+  > This is the start of a fresh session in this project. Follow the project's CLAUDE.md startup routine (if the
+  > project has `docs/state/`, run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` from the project
+  > directory as its startup check), then read what it points you to for the next task. Don't change any
   > files. Report: which task you'd work on, what done looks like for it, your first three concrete steps, what
   > you'd need to ask the user before starting, and anything that reads as ambiguous, contradictory or stale.
 
@@ -102,5 +104,5 @@ Reply briefly with:
 
 End by telling the user the state is saved and they can start a fresh session (`/clear` or a new chat), and which
 doc the new session should start from if the project's startup instructions don't already point there. If the
-project has the `SessionStart` hook, say instead that the new session gets the state on startup, and repeat the
-`Next:` items. A skill can't clear the session itself.
+project has `docs/state/`, say instead that the new session gets the state on startup from the gibbon plugin's hook,
+and repeat the `Next:` items. A skill can't clear the session itself.

@@ -1,6 +1,6 @@
 ---
 name: project-scaffold
-description: Set up a new project so Claude can work on it across many sessions - CLAUDE.md, docs/state/ JSON for tasks, tests and environment, a short docs/status.md, a session start check script, .gitignore and git. Use when the user says "scaffold a project", "set up a new project", "start a project", or opens a directory with no CLAUDE.md and no state docs and asks to begin work there. Not for a project that already records its status (use gibbon:project-state-migrate), nor for writing a CLAUDE.md from existing code (/init).
+description: Set up a new project so Claude can work on it across many sessions - CLAUDE.md, docs/state/ JSON for tasks, tests and environment, a short docs/status.md, the project's own session start checks, .gitignore and git. Use when the user says "scaffold a project", "set up a new project", "start a project", or opens a directory with no CLAUDE.md and no state docs and asks to begin work there. Not for a project that already records its status (use gibbon:project-state-migrate), nor for writing a CLAUDE.md from existing code (/init).
 ---
 
 # Scaffold a project
@@ -33,11 +33,9 @@ Skip a question the user has already answered.
 - `docs/state/tasks.json`, `tests.json`, `environment.json` from the templates, with the first tasks the user named and
   `next: true` and the agreed `done_when` on the first. Fill `environment.json`'s `facts` with what step 2 named.
 - `docs/status.md` from the template, with the focus filled in.
-- `tools/check_state.py` and `tools/tasks.py`, copied unchanged.
-- `tools/session_start.py` from the template, with `project_checks()` implemented for the `facts` from step 2, or the
-  placeholder comment removed if there are none.
-- `.claude/settings.json` with the `SessionStart` hook from `templates/settings.json`, merged into the file if it
-  exists (see "Session start hook" in `layout.md`).
+- `tools/tasks.py`, copied unchanged.
+- `tools/project_checks.py` from the template, with `check()` implemented for the `facts` from step 2; leave the file
+  out if there are none.
 - `CLAUDE.md`: one paragraph on the goal, then Paths, Layout, Build (if any), the Session routine from `layout.md`, and
   Working notes for anything the user said about how they want to work. Keep it under about 80 lines.
 - The investigation docs from step 2.3, if wanted, with a `docs/tests/README.md` that says how to write a test and to
@@ -47,12 +45,11 @@ Skip a question the user has already answered.
 
 ## 4. Check and commit
 
-1. Run `tools/session_start.py` until it passes, then pipe-test the hook command:
-   `echo '{}' | CLAUDE_PROJECT_DIR="$PWD" python "$PWD/tools/session_start.py" --hook` should print the same and exit
-   0. Tell the user the hook runs from the next session on.
+1. Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` in the project until it passes. Tell the user the
+   gibbon plugin's hook shows its output at the start of every session from the next one on.
 2. If `CLAUDE.md` imports any file outside the project directory, tell the user to approve external imports for this
    project (see their global `CLAUDE.md`) and to confirm with `/context`.
 3. `git init` if the directory isn't a repository, then commit everything except ignored files, following the user's
    git rules.
 
-Reply with the files created, one line each, and the `session_start.py` output's Next section.
+Reply with the files created, one line each, and the session start check's Next section.
