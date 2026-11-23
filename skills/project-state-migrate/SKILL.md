@@ -19,6 +19,7 @@ Read:
 - every doc that records status, next steps, plans, decisions, test results, releases or deployed state (check
   `docs/`, READMEs and changelogs; follow links from `CLAUDE.md`);
 - `.claude/skills/*/SKILL.md`, for skills that write any of the above;
+- code comments and scripts that record status or test results, such as "passed stage 18" next to a value;
 - the project's memories, in `~/.claude/projects/<project-slug>/memory/`, where the slug is the project path with
   `:`, `\`, `/` and spaces replaced by `-` (list `~/.claude/projects/` if unsure);
 - `git log --oneline -20` and `git status`;
@@ -27,10 +28,11 @@ Read:
 
 If the project already has `docs/state/`, also run the session start check,
 `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, from the project directory and report its problems and
-notes, such as per-project scripts, a `SessionStart` hook or a copied session routine the plugin replaces. Check
-that `tools/project_checks.py` makes the environment checks the docs ask for by hand.
+notes, such as per-project scripts, a `SessionStart` hook or a copied session routine the plugin replaces. If the
+project has a `tools/session_start.py` from an earlier version of the layout, read its `project_checks()` and list
+each check it makes. Check that `tools/project_checks.py` makes those checks and the ones the docs ask for by hand.
 
-Report, grouped by the layout's files:
+Report:
 
 1. **Where each kind of state lives now:** task status, next steps, test results, environment and deploys, history.
    Name the file and section for each place.
@@ -39,7 +41,9 @@ Report, grouped by the layout's files:
    deployed state in prose, design or changelog content in a status doc, status words or dated history in other docs
    ("Answered:", "Partly answered", "settled 2026-11-16", "seen in tests 3-5"), the same open question listed in more
    than one place, per-project scripts, hook or session routine the plugin replaces, environment checks done by hand
-   that `tools/project_checks.py` could make, test files that don't follow `templates/test.md`.
+   that `tools/project_checks.py` could make, test files outside `docs/tests/`, a tests README that sets its own
+   test file layout instead of adding to `templates/test.md`, status wording in code comments or scripts. Report old
+   test files that don't follow the template as a count, not one by one.
 
    Name what already works in the project's tracking, and keep it: the aim is to move state into the layout, not to
    add process the project has managed without.
@@ -80,12 +84,16 @@ changelog or git history.
    "Partly answered", "settled on", "seen in tests") with a link to `tasks.json`; keep their reasoning and decisions.
    Where you keep a summary, check its claims against later findings and correct any that have been overtaken. Leave
    each open question in one findings doc and link to it from elsewhere. Replace test index tables with a link to
-   `tests.json`, keeping project-specific reference material (log formats, conventions) in `docs/tests/README.md`
-   and dropping the general how-to that `templates/test.md` and "Writing a test" in `layout.md` cover. Leave existing
-   test files as they are. Move design detail out of status docs into a design doc.
+   `tests.json`. Move test files kept elsewhere into `docs/tests/` with `git mv`, and update their `file` paths in
+   `tests.json` and every link to them. Keep project-specific reference material (log formats, conventions) in
+   `docs/tests/README.md`, drop the general how-to that `templates/test.md` and "Writing a test" in `layout.md` cover,
+   and turn a test file layout the README sets into additions to the template's. Leave the content of existing test
+   files as it is. In code comments and scripts, replace status wording with the test or task id that records it.
+   Move design detail out of status docs into a design doc.
 5. **Update `CLAUDE.md`** with the Session routine pointer from `layout.md`, in place of any copy of the routine, and
    the new file locations. Show the user each project-specific rule in a replaced routine, and move the ones they keep
-   to Working notes. Update skills from the audit so they write `docs/state/`. Update or delete the memories from the
+   to Working notes. Update skills from the audit so they write `docs/state/` and test ids rather than status wording
+   in code. Update or delete the memories from the
    audit so they name the new files, and move state held in memory into `environment.json`; update `MEMORY.md` to
    match.
 6. **Check:** run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, which prints `docs/status.md`, and from

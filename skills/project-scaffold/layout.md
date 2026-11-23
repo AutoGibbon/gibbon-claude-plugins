@@ -9,7 +9,7 @@ notes, git as the history, and a script that checks the environment at session s
 | What | Where | Format | Who changes what |
 | --- | --- | --- | --- |
 | Work items: workstreams, tasks, spec and acceptance items, release steps | `docs/state/tasks.json` | JSON | Claude changes `status`, `evidence`, `blocked_by`, `next` and `updated`. Adding, removing or rewording an item needs the user's agreement |
-| Tests | `docs/state/tests.json`, plus one `.md` file per test with its steps and results | JSON index, Markdown detail | Claude adds entries and fills in results. A test's `checks` doesn't change after it runs |
+| Tests | `docs/state/tests.json`, plus one `.md` file per test in `docs/tests/` with its steps and results | JSON index, Markdown detail | Claude adds entries and fills in results. A test's `checks` doesn't change after it runs |
 | Environment: builds, deployed artefacts, installed tools or mods that affect tests | `docs/state/environment.json` | JSON | Updated whenever something is built, deployed, installed or toggled |
 | Current focus, half-done work, gotchas for the next session | `docs/status.md` | Freeform Markdown, under about 60 lines | Rewritten at the end of each session, not appended to |
 | What happened and when | git commits, test files, the project's changelog | — | Never copied back into `status.md` |
@@ -154,16 +154,18 @@ doc that `detail` points to, not in a JSON field.
 }
 ```
 
-- `facts`: whatever `tools/project_checks.py` compares against, such as a game build, a tool version or a service URL.
+- `facts`: values `tools/project_checks.py` compares against, such as a game build, a tool version or a service URL,
+  and reference values tests or releases depend on, such as installed DLC, a test save or the released version.
 - `artefacts`: the session start check compares `built` and `deployed` by hash when both are set, so a stale deploy
   shows before a test.
 - `installed`: tools, mods or services outside the repo that change results.
 
 ## Writing a test
 
-Start each test file from `templates/test.md`: what it checks, setup, steps, results, and a conclusion whose first line
-is the `result` in `tests.json`. A project's `docs/tests/README.md` holds only what is specific to it, such as how to
-launch the game or app, log formats and where captures go; a project with nothing specific has no README.
+Test files live in `docs/tests/`. Start each one from `templates/test.md`: what it checks, setup, steps, results, and
+a conclusion whose first line is the `result` in `tests.json`. A project's `docs/tests/README.md` adds only what is
+specific to it, such as how to launch the game or app, log formats and where captures go, and extra sections its tests
+need; it doesn't replace the template's layout. A project with nothing specific has no README.
 
 ## Session routine
 
