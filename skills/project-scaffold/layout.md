@@ -15,11 +15,12 @@ notes, git as the history, and a script that checks the environment at session s
 | What happened and when | git commits, test files, the project's changelog | — | Never copied back into `status.md` |
 | Session start check | The gibbon plugin's `scripts/session_start.py`, which runs the plugin's `scripts/check_state.py`, run by the plugin's `SessionStart` hook | Script | Read-only |
 | The project's own environment checks | `tools/project_checks.py`: `check(root, env)` returns a message for each check that fails | Script | Read-only |
-| Task and test queries | `tools/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it) and `tests` | Script | Read-only |
+| Task and test queries | The gibbon plugin's `scripts/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it) and `tests` | Script | Read-only |
+| Edit checks | The gibbon plugin's `PreToolUse` and `PostToolUse` hooks on edits to `docs/state/` | Hook | — |
 
-Templates for every project file are in `templates/` next to this file. `tasks.py` is copied unchanged;
-`project_checks.py` gets the project's own checks, and a project with none leaves it out. The plugin's scripts are in
-`scripts/`, two folders above this file.
+Templates for project files are in `templates/` next to this file: `project_checks.py` gets the project's own checks,
+and a project with none leaves it out. The plugin's scripts are in `scripts/` and its hooks in `hooks/`, two folders
+above this file.
 
 ## How strict
 
@@ -32,14 +33,33 @@ process gaps are for the user to weigh.
 ## Session start check
 
 The gibbon plugin's `SessionStart` hook runs `scripts/session_start.py --hook` on startup, `/clear` and compaction in
-every project, and Claude Code adds its output to the session's context. In a project with `docs/state/` it prints the
-session routine, git status and recent commits, the problems `tools/project_checks.py` and the artefact hash comparison find, notes on
-`tools/tasks.py` and on per-project scripts the plugin replaces, and `check_state.py`'s output, which ends with the
-tasks to pick up; elsewhere it prints nothing. `--hook` makes the script exit 0 even when a check fails, because the
+every project, and Claude Code adds its output to the session's context. In a project with `docs/state/` it prints:
+
+- the session routine, with the plugin's path filled in;
+- git status and recent commits, and on startup, `/clear` or resume, a note that uncommitted changes are left over;
+- the problems `tools/project_checks.py` and the artefact hash comparison find, and notes on per-project scripts the
+  plugin replaces;
+- `check_state.py`'s output, which ends with the tasks to pick up;
+- `docs/status.md`.
+
+Elsewhere it prints nothing. `--hook` makes the script exit 0 even when a check fails, because the
 output only reaches the context on exit 0; the output then ends with a line asking Claude to tell the user. Without
 `--hook` it exits 1 on a failed check. Skills run it from the project directory as
 `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`. The scripts use only the standard library, so any `python`
 on `PATH` runs them.
+
+## Edit checks
+
+Two plugin hooks run on `Edit`, `MultiEdit` and `Write` calls to `docs/state/`:
+
+- `hooks/guard_state.py` (`PreToolUse`) asks the user before an edit to `tasks.json` that adds or removes a task or
+  changes a task field other than `status`, `evidence`, `blocked_by`, `next` and `updated`, and before an edit to
+  `tests.json` that removes a test or changes the `checks` of one that has run. Creating either file goes through,
+  since the scaffold and migrate skills agree its contents with the user first.
+- `hooks/post_state_check.py` (`PostToolUse`) runs `check_state.py` after the edit and reports its errors to Claude to
+  fix, and its warnings on the entries the edit touched to raise with the user.
+
+Neither sees changes made through Bash, so edit the state files with the edit tools.
 
 ## `tasks.json`
 
@@ -139,6 +159,12 @@ doc that `detail` points to, not in a JSON field.
   shows before a test.
 - `installed`: tools, mods or services outside the repo that change results.
 
+## Writing a test
+
+Start each test file from `templates/test.md`: what it checks, setup, steps, results, and a conclusion whose first line
+is the `result` in `tests.json`. A project's `docs/tests/README.md` holds only what is specific to it, such as how to
+launch the game or app, log formats and where captures go; a project with nothing specific has no README.
+
 ## Session routine
 
 The routine for working in a project is `session_routine.md`, next to this file. The session start check prints it at
@@ -169,13 +195,12 @@ learned along the way go in findings. Gotchas keep only traps in how the project
 steps, conversions), linking to the finding behind each; a fact about the game or code that a finding already holds
 doesn't go there.
 
-## Templates in projects
+## Copies from earlier versions of the layout
 
-Projects hold a copy of `tasks.py`, which falls behind when the template changes. The session start check notes when
-`tools/tasks.py` is missing or differs from its template. It also notes per-project scripts from earlier versions of
-this layout, `tools/session_start.py` and `tools/check_state.py`, and a `SessionStart` hook in `.claude/settings.json`
-that runs them, and a copy of the session routine in `CLAUDE.md`; the plugin replaces them, and
-`gibbon:project-state-migrate` removes them.
+Projects set up under earlier versions of this layout hold copies of what the plugin now provides:
+`tools/session_start.py`, `tools/check_state.py` and `tools/tasks.py`, a `SessionStart` hook in
+`.claude/settings.json` that runs them, and the session routine in `CLAUDE.md`. The session start check notes each
+one, and `gibbon:project-state-migrate` removes them.
 
 ## Memories
 

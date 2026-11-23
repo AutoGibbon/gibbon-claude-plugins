@@ -1,5 +1,5 @@
 {
   "name": "gibbon",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Project state tracking: scaffold a project, audit and migrate an existing one, and wrap up a session"
 }

@@ -81,8 +81,8 @@ def check_ids(name, entries, errors):
     return seen
 
 
-def main():
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+def check(root):
+    """Validate root's docs/state/*.json; return (errors, warnings, tasks, tests)."""
     state = root / "docs" / "state"
     errors = []
     warnings = []
@@ -147,7 +147,12 @@ def main():
         for task in t.get("tasks", []):
             if task not in task_ids:
                 errors.append(f"tests.json {tid}: unknown task {task}")
+    return errors, warnings, tasks, tests
 
+
+def main():
+    root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+    errors, warnings, tasks, tests = check(root)
     for label, pick in (
         ("Next", lambda t: t.get("next")),
         ("In progress", lambda t: t.get("status") == "in_progress" and not t.get("next")),

@@ -33,14 +33,12 @@ Skip a question the user has already answered.
 - `docs/state/tasks.json`, `tests.json`, `environment.json` from the templates, with the first tasks the user named and
   `next: true` and the agreed `done_when` on the first. Fill `environment.json`'s `facts` with what step 2 named.
 - `docs/status.md` from the template, with the focus filled in.
-- `tools/tasks.py`, copied unchanged.
 - `tools/project_checks.py` from the template, with `check()` implemented for the `facts` from step 2; leave the file
   out if there are none.
 - `CLAUDE.md`: one paragraph on the goal, then Paths, Layout, Build (if any), the Session routine pointer from
-  `layout.md`, and
-  Working notes for anything the user said about how they want to work. Keep it under about 80 lines.
-- The investigation docs from step 2.3, if wanted, with a `docs/tests/README.md` that says how to write a test and to
-  add it to `tests.json`.
+  `layout.md`, and Working notes for anything the user said about how they want to work. Keep it under about 80 lines.
+- The investigation docs from step 2.3, if wanted. Add a `docs/tests/README.md` only for what is specific to this
+  project's tests (see "Writing a test" in `layout.md`).
 - `.gitignore` with `scratch/`, `build/` and `.claude/settings.local.json`, plus the language's usual entries.
 - `scratch/`, for files the agent manages that aren't committed.
 

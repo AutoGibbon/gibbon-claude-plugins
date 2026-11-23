@@ -1,13 +1,13 @@
 """Query docs/state/tasks.json and tests.json: list, show and trace the dependencies of tasks, and list tests.
 
 Usage:
-  python tools/tasks.py list [--open] [--status S] [--workstream W]
-  python tools/tasks.py show ID...
-  python tools/tasks.py deps ID
-  python tools/tasks.py tests [--status S]
+  python tasks.py list [--open] [--status S] [--workstream W]
+  python tasks.py show ID...
+  python tasks.py deps ID
+  python tasks.py tests [--status S]
 
---root REPO_ROOT before the command reads another project; by default it's the folder above this script's.
-Reads only; the gibbon plugin's session start check validates the files.
+--root REPO_ROOT before the command reads that project; by default it's the nearest folder at or above the current
+directory that has docs/state/. Reads only; check_state.py validates the files.
 """
 
 import argparse
@@ -16,6 +16,12 @@ import sys
 from pathlib import Path
 
 CLOSED = ("done", "dropped")
+
+
+def find_root():
+    """Return the nearest folder at or above the current directory that has docs/state/, or the current directory."""
+    cwd = Path.cwd().resolve()
+    return next((p for p in (cwd, *cwd.parents) if (p / "docs" / "state").is_dir()), cwd)
 
 
 def load(root, name, key):
@@ -109,7 +115,7 @@ def main():
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="Query docs/state/tasks.json and tests.json.")
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent)
+    parser.add_argument("--root", type=Path, default=None)
     sub = parser.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("list", help="one line per task")
     p.add_argument("--open", action="store_true", help="leave out done and dropped tasks")
@@ -123,7 +129,7 @@ def main():
     p.add_argument("--status")
     args = parser.parse_args()
 
-    root = args.root.resolve()
+    root = args.root.resolve() if args.root else find_root()
     if args.cmd == "tests":
         cmd_tests(load(root, "tests.json", "tests"), args)
     else:

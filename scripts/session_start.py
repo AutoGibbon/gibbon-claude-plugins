@@ -1,11 +1,12 @@
 """Print what a new session in a docs/state/ project needs before it starts work: the session routine, git state,
-environment checks, notes on the project's scripts, and the state check with the tasks to pick up.
+environment checks, notes on the project's scripts, the state check with the tasks to pick up, and docs/status.md.
 
 Usage: python session_start.py [--hook] [PROJECT_DIR]
 
 PROJECT_DIR defaults to $CLAUDE_PROJECT_DIR, then the current directory. Exits 1 if a check fails. With --hook, as the
-gibbon plugin's SessionStart hook runs it, prints nothing for a project without docs/state/ and always exits 0,
-because Claude Code adds a SessionStart hook's output to the session's context only when the hook exits 0. Reads only.
+gibbon plugin's SessionStart hook runs it with the hook input on stdin, prints nothing for a project without
+docs/state/ and always exits 0, because Claude Code adds a SessionStart hook's output to the session's context only
+when the hook exits 0. Reads only.
 """
 
 import hashlib
@@ -17,12 +18,11 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-TEMPLATES = HERE.parent / "skills" / "project-scaffold" / "templates"
-ROUTINE = HERE.parent / "skills" / "project-scaffold" / "session_routine.md"
-# Scripts each project copies unchanged from TEMPLATES.
-COPIED_SCRIPTS = ("tasks.py",)
-# Scripts projects held under earlier versions of the layout, which this script and check_state.py replace.
-SUPERSEDED_SCRIPTS = ("session_start.py", "check_state.py")
+PLUGIN_ROOT = HERE.parent
+# The routine's {plugin} placeholders become PLUGIN_ROOT when it is printed.
+ROUTINE = PLUGIN_ROOT / "skills" / "project-scaffold" / "session_routine.md"
+# Scripts projects held under earlier versions of the layout, which the plugin's scripts replace.
+SUPERSEDED_SCRIPTS = ("session_start.py", "check_state.py", "tasks.py")
 
 
 def run(root, *args):
@@ -73,19 +73,8 @@ def project_checks(root, env):
 
 
 def script_notes(root):
-    """Return a note for each of COPIED_SCRIPTS missing from tools/ or differing from its template, and one listing
-    the superseded scripts, project SessionStart hook and copied session routine still in the project."""
-
-    def norm(path):
-        return path.read_bytes().replace(b"\r\n", b"\n")
-
-    notes = []
-    for name in COPIED_SCRIPTS:
-        ours = root / "tools" / name
-        if not ours.is_file():
-            notes.append(f"tools/{name} is missing; copy it from the project-scaffold template")
-        elif norm(ours) != norm(TEMPLATES / name):
-            notes.append(f"tools/{name} differs from the project-scaffold template")
+    """Return notes naming the superseded scripts, project SessionStart hook and copied session routine still in the
+    project, or an empty list."""
     leftovers = [f"tools/{name}" for name in SUPERSEDED_SCRIPTS if (root / "tools" / name).is_file()]
     settings = root / ".claude" / "settings.json"
     if settings.is_file() and "session_start.py" in settings.read_text(encoding="utf-8"):
@@ -93,15 +82,25 @@ def script_notes(root):
     claude_md = root / "CLAUDE.md"
     if claude_md.is_file() and "- **Start:**" in claude_md.read_text(encoding="utf-8"):
         leftovers.append("the copy of the session routine in CLAUDE.md")
-    if leftovers:
-        notes.append(f"the gibbon plugin replaces {', '.join(leftovers)}")
-    if notes:
-        notes.append("the gibbon:project-state-migrate skill brings the project's scripts in line")
-    return notes
+    if not leftovers:
+        return []
+    return [
+        f"the gibbon plugin replaces {', '.join(leftovers)}",
+        "the gibbon:project-state-migrate skill removes them",
+    ]
+
+
+def hook_source():
+    """Return the SessionStart source (startup, resume, clear or compact) from the hook input on stdin, or ""."""
+    try:
+        return json.load(sys.stdin).get("source", "")
+    except (ValueError, AttributeError):
+        return ""
 
 
 def main():
     hook = "--hook" in sys.argv
+    source = hook_source() if hook else ""
     args = [a for a in sys.argv[1:] if a != "--hook"]
     root = Path(args[0] if args else os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
     if not (root / "docs" / "state").is_dir():
@@ -111,11 +110,15 @@ def main():
         return 1
 
     print("== session routine (from the gibbon plugin; part of this project's instructions)")
-    print(ROUTINE.read_text(encoding="utf-8").rstrip())
+    print(ROUTINE.read_text(encoding="utf-8").replace("{plugin}", PLUGIN_ROOT.as_posix()).rstrip())
 
     print("\n== git")
-    print(run(root, "git", "status", "--short") or "(clean)")
+    status = run(root, "git", "status", "--short")
+    print(status or "(clean)")
     print(run(root, "git", "log", "--oneline", "-5"))
+    # After compaction the changes are this session's own work in progress.
+    if status and hook and source != "compact":
+        print("  note: uncommitted changes from before this session; ask the user whether to commit them")
 
     problems = []
     print("\n== environment")
@@ -134,6 +137,10 @@ def main():
 
     print("\n== state", flush=True)
     state = subprocess.run([sys.executable, str(HERE / "check_state.py"), str(root)], check=False, cwd=root)
+
+    status_md = root / "docs" / "status.md"
+    print("\n== docs/status.md")
+    print(status_md.read_text(encoding="utf-8").rstrip() if status_md.is_file() else "  ! docs/status.md missing")
 
     failed = bool(problems or state.returncode)
     if hook:
