@@ -11,7 +11,8 @@ Hooks, in every project with `docs/state/`:
 
 - `SessionStart` runs `scripts/session_start.py`, which prints the session routine (with the `scripts/tasks.py`
   command), git status, the project's `tools/project_checks.py` and deployed artefact hash results,
-  `scripts/check_state.py`'s validation and next tasks, and `docs/status.md`.
+  `scripts/check_state.py`'s validation and next tasks, and `docs/status.md`. It prints the routine in full rather
+  than a pointer to it, because Claude follows it more reliably that way; don't shorten it to save context.
 - `PreToolUse` runs `hooks/guard_state.py`, which asks the user before an edit to `tasks.json` or `tests.json` that the
   layout reserves for them.
 - `PostToolUse` runs `hooks/post_state_check.py`, which reports `check_state.py`'s findings after an edit to
