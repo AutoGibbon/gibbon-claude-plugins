@@ -70,8 +70,8 @@ If the project has `docs/state/` (the layout in `${CLAUDE_PLUGIN_ROOT}/skills/pr
 ## 4. Check before committing
 
 - Cold-read the handoff. This session can't judge its own docs, because it fills gaps from the conversation
-  without noticing, so spawn a read-only subagent and give it only this prompt, with no summary of the session or
-  hint of what you expect:
+  without noticing, so spawn a read-only subagent on Sonnet (Agent tool `model: "sonnet"`) and give it only this
+  prompt, with no summary of the session or hint of what you expect:
 
   > This is the start of a fresh session in this project. Follow the project's CLAUDE.md startup routine (if the
   > project has `docs/state/`, run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` from the project
