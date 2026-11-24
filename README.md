@@ -5,6 +5,8 @@ Claude Code plugins, one folder each under `plugins/`:
 - [`gibbon`](plugins/gibbon/README.md) - project state tracking: scaffold a project, audit and migrate an existing one,
   and wrap up a session.
 - `bg-tasks` - a band above the prompt listing running background tasks and subagents, and scheduled prompts.
+- [`usage-meter`](plugins/usage-meter/README.md) - a line above the prompt with chat fullness, plan limits and cache
+  warmth, a hold before sending to a cold chat, and `/keepwarm` to keep the cache warm while idle.
 
 ## Install
 
@@ -12,6 +14,7 @@ Claude Code plugins, one folder each under `plugins/`:
 claude plugin marketplace add F:\GIT\claude-project-skills
 claude plugin install gibbon@gibbon
 claude plugin install bg-tasks@gibbon
+claude plugin install usage-meter@gibbon
 ```
 
 ## Update

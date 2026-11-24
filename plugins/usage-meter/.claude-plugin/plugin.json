@@ -1,0 +1,7 @@
+{
+  "name": "usage-meter",
+  "version": "0.2.2",
+  "license": "MIT",
+  "description": "One line above the chat: how full this chat is, how much of your limits is left, whether the chat is still warm, a warning before a message to a cold chat, and /keepwarm to keep the cache warm while idle",
+  "types": "./types/index.d.ts"
+}

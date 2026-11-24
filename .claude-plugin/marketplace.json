@@ -3,6 +3,7 @@
   "owner": { "name": "Gibbon" },
   "plugins": [
     { "name": "gibbon", "source": "./plugins/gibbon" },
-    { "name": "bg-tasks", "source": "./plugins/bg-tasks" }
+    { "name": "bg-tasks", "source": "./plugins/bg-tasks" },
+    { "name": "usage-meter", "source": "./plugins/usage-meter" }
   ]
 }
