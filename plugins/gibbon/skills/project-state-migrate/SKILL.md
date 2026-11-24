@@ -68,10 +68,13 @@ changelog or git history.
    from its result text, list each inferred status for the user. Turn order the docs give in prose into
    `depends_on`. Don't add `done_when` to finished items. For `in_progress` and `next` items, take it from the docs'
    acceptance checks, requirements or planned test checks, or propose one and mark it for the user. Don't make tasks
-   from open questions unless planned work needs their answer (see "Open questions" in `layout.md`). Use only the
-   layout's fields. For an artefact's `commit`, find the commit whose build matches the deployed file, not the one
-   the docs name. Show the user `tasks.json`, including the `next` flags, the proposed `done_when` and the inferred
-   statuses, and stop until they accept it.
+   from open questions unless planned work needs their answer (see "Open questions" in `layout.md`). Draft a
+   workstream item (see "Workstreams" in `layout.md`) for each distinct `workstream` string on the tasks, or each
+   group of related work the docs describe, with a `done_when` and `depends_on` from the docs or proposed and marked
+   for the user; if `tasks.json` already exists, add only these items. Use only the layout's fields. For an
+   artefact's `commit`, find the commit whose build matches the deployed file, not the one the docs name. Show the
+   user `tasks.json`, including the `next` flags, the proposed `done_when`, the inferred statuses and the workstream
+   items, and stop until they accept it.
 3. **Add the project checks:** write `tools/project_checks.py` from the template with `check()` covering the checks
    the docs ask for by hand (build or version changes, stale extracts, tools or venvs the project relies on); leave it
    out if there are none. If the project has a `tools/session_start.py` from an earlier version of the layout, move

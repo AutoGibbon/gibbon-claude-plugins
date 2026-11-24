@@ -1,9 +1,11 @@
-"""Query docs/state/tasks.json and tests.json: list, show and trace the dependencies of tasks, and list tests.
+"""Query docs/state/tasks.json and tests.json: list, show and trace the dependencies of tasks, summarise workstreams,
+and list tests.
 
 Usage:
   python tasks.py list [--open] [--status S] [--workstream W]
   python tasks.py show ID...
   python tasks.py deps ID
+  python tasks.py streams [--open]
   python tasks.py tests [--status S]
 
 --root REPO_ROOT before the command reads that project; by default it's the nearest folder at or above the current
@@ -32,11 +34,17 @@ def load(root, name, key):
         sys.exit(f"{path}: can't read '{key}': {e}")
 
 
+def is_stream(t):
+    return t.get("kind") == "workstream"
+
+
 def task_line(t):
-    """Return one line for a task: status, id, workstream, next flag, dependencies and title."""
+    """Return one line for a task: status, id, workstream (or {stream} for a workstream item), next flag, dependencies
+    and title."""
     flag = " *next" if t.get("next") else ""
     deps = f" <- {', '.join(t['depends_on'])}" if t.get("depends_on") else ""
-    return f"[{t.get('status')}] {t.get('id')} ({t.get('workstream', '-')}){flag}{deps}: {t.get('title')}"
+    group = "{stream}" if is_stream(t) else f"({t.get('workstream', '-')})"
+    return f"[{t.get('status')}] {t.get('id')} {group}{flag}{deps}: {t.get('title')}"
 
 
 def cmd_list(tasks, args):
@@ -102,6 +110,21 @@ def cmd_deps(tasks, args):
             print("  (none)")
 
 
+def cmd_streams(tasks, args):
+    """Print one line per workstream item: status, id, open and done task counts, unfinished depends_on and title."""
+    by_id = {t.get("id"): t for t in tasks}
+    for s in tasks:
+        if not is_stream(s) or (args.open and s.get("status") in CLOSED):
+            continue
+        members = [t for t in tasks if t.get("workstream") == s.get("id")]
+        n_open = sum(1 for t in members if t.get("status") not in CLOSED)
+        n_done = sum(1 for t in members if t.get("status") == "done")
+        waits = [d for d in s.get("depends_on", []) if by_id.get(d, {}).get("status") not in CLOSED]
+        wait_text = f" waits on {', '.join(waits)}" if waits else ""
+        flag = " *next" if s.get("next") else ""
+        print(f"[{s.get('status')}] {s.get('id')}{flag} ({n_open} open, {n_done} done){wait_text}: {s.get('title')}")
+
+
 def cmd_tests(tests, args):
     for t in tests:
         if args.status and t.get("status") != args.status:
@@ -125,6 +148,8 @@ def main():
     p.add_argument("ids", nargs="+", metavar="ID")
     p = sub.add_parser("deps", help="what a task waits on and what waits on it, recursively")
     p.add_argument("id", metavar="ID")
+    p = sub.add_parser("streams", help="one line per workstream with its task counts and what it waits on")
+    p.add_argument("--open", action="store_true", help="leave out done and dropped workstreams")
     p = sub.add_parser("tests", help="one line per test")
     p.add_argument("--status")
     args = parser.parse_args()
@@ -133,7 +158,8 @@ def main():
     if args.cmd == "tests":
         cmd_tests(load(root, "tests.json", "tests"), args)
     else:
-        {"list": cmd_list, "show": cmd_show, "deps": cmd_deps}[args.cmd](load(root, "tasks.json", "items"), args)
+        commands = {"list": cmd_list, "show": cmd_show, "deps": cmd_deps, "streams": cmd_streams}
+        commands[args.cmd](load(root, "tasks.json", "items"), args)
 
 
 if __name__ == "__main__":

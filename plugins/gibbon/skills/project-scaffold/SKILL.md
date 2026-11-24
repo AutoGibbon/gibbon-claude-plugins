@@ -20,6 +20,8 @@ it to fill `CLAUDE.md`'s Paths, Layout and Build sections.
 Ask only what the files can't be written without, in one message:
 
 1. The project's goal, in a sentence or two, and the first piece of work with what makes it done (its `done_when`).
+   Optionally, the workstreams the work falls into, with each one's goal and the order they run in (see "Workstreams"
+   in `layout.md`).
 2. What `environment.json` should track: a game or app build and where builds are deployed, tool or service versions,
    or nothing.
 3. Whether it's an investigation project (reverse engineering, research, tuning by tests), which adds
@@ -31,7 +33,8 @@ Skip a question the user has already answered.
 ## 3. Create
 
 - `docs/state/tasks.json`, `tests.json`, `environment.json` from the templates, with the first tasks the user named and
-  `next: true` and the agreed `done_when` on the first. Fill `environment.json`'s `facts` with what step 2 named.
+  `next: true` and the agreed `done_when` on the first, and a workstream item for each workstream named, with the
+  first one `in_progress`. Fill `environment.json`'s `facts` with what step 2 named.
 - `docs/status.md` from the template, with the focus filled in.
 - `tools/project_checks.py` from the template, with `check()` implemented for the `facts` from step 2; leave the file
   out if there are none.

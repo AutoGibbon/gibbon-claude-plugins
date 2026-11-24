@@ -15,7 +15,7 @@ notes, git as the history, and a script that checks the environment at session s
 | What happened and when | git commits, test files, the project's changelog | — | Never copied back into `status.md` |
 | Session start check | The gibbon plugin's `scripts/session_start.py`, which runs the plugin's `scripts/check_state.py`, run by the plugin's `SessionStart` hook | Script | Read-only |
 | The project's own environment checks | `tools/project_checks.py`: `check(root, env)` returns a message for each check that fails, or `(problems, notes)` where notes don't fail the check | Script | Read-only |
-| Task and test queries | The gibbon plugin's `scripts/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it) and `tests` | Script | Read-only |
+| Task and test queries | The gibbon plugin's `scripts/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it), `streams` and `tests` | Script | Read-only |
 | Edit checks | The gibbon plugin's `PreToolUse` and `PostToolUse` hooks on edits to `docs/state/` | Hook | — |
 
 Templates for project files are in `templates/` next to this file: `project_checks.py` gets the project's own checks,
@@ -24,9 +24,10 @@ above this file.
 
 ## How strict
 
-`check_state.py` fails only on broken structure: a missing or invalid file, a bad id or status, or a reference to a
-task, test, commit or path that doesn't exist. Gaps in process (no `done_when` on work in progress, `done` with no
-evidence, a run test with no result, `blocked` with no `blocked_by`) are warnings, so they show at every session start
+`check_state.py` fails only on broken structure: a missing or invalid file, a bad id, status or `kind`, a reference to
+a task, workstream, test, commit or path that doesn't exist, a nested workstream, or a dependency cycle. Gaps in
+process (no `done_when` on work in progress, `done` with no evidence, a run test with no result, `blocked` with no
+`blocked_by`, work started before what it waits on is done) are warnings, so they show at every session start
 without stopping work. Keep it that way: structural errors break the next session's reading of the state, while
 process gaps are for the user to weigh.
 
@@ -69,6 +70,16 @@ Neither sees changes made through Bash, so edit the state files with the edit to
   "statuses": ["todo", "in_progress", "blocked", "done", "dropped"],
   "items": [
     {
+      "id": "dawn-fog",
+      "kind": "workstream",
+      "title": "Morning fog that rolls in and burns off",
+      "status": "in_progress",
+      "done_when": ["Fog density follows weather stage and time of day, tunable from WeatherMod.toml"],
+      "depends_on": [],
+      "detail": "docs/findings/fog-volumes.md",
+      "updated": "2026-11-22"
+    },
+    {
       "id": "fog-weather-prefab-patch",
       "workstream": "dawn-fog",
       "title": "Data patch adding a density-0 fog volume to weather.prefab",
@@ -97,8 +108,26 @@ Neither sees changes made through Bash, so edit the state files with the edit to
 - `blocked_by`: required when `status` is `blocked`; free text naming what blocks it, such as "tester must reach a
   ship".
 - `detail`: optional repo path, with an optional `#anchor`, to the doc that explains the item.
-- `depends_on`: ids of tasks that must be done first. Order the docs give in prose ("then", "after", "first") goes
-  here, so it isn't kept only in prose.
+- `depends_on`: ids of tasks or workstreams that must be done first. Order the docs give in prose ("then", "after",
+  "first") goes here, so it isn't kept only in prose.
+- `kind`: `"workstream"` on a workstream item; absent on a task.
+- `workstream`: optional id of the workstream item the task belongs to.
+
+### Workstreams
+
+A workstream groups tasks toward one goal, held in its `done_when`. It has the same fields as a task except
+`workstream`: workstreams don't nest. Its `depends_on` names the tasks or workstreams that must be done before it
+starts, not its own tasks; a phase is a workstream that depends on the one before it.
+
+- A workstream goes `in_progress` only once its `depends_on` are done, and its tasks go `in_progress` only while it is
+  `in_progress`. Close it once its tasks are closed.
+- `next` on a workstream marks the one to start when none is `in_progress`.
+- A task that depends on its own workstream, directly or through other items, is a cycle and fails the check.
+- Until a project has a workstream item, `workstream` strings on tasks only warn, so projects from before workstreams
+  keep passing until `gibbon:project-state-migrate` adds the items.
+
+The session start check groups the Next tasks under each workstream with its goal and task counts, puts tasks with
+no workstream under Other, and lists the items ready to start.
 
 Use only the fields shown in these schemas; `check_state.py` warns on others. Explanations, plans and paths go in the
 doc that `detail` points to, not in a JSON field.

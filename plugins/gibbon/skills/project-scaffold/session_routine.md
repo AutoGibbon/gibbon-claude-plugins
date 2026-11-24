@@ -1,9 +1,11 @@
 - **Start:** raise any problems and notes this check reports with the user. `docs/status.md` is printed below; work
   on the `next` items in `docs/state/tasks.json` unless the user says otherwise.
-- **Queries:** list, show and trace tasks and tests with `python "{plugin}/scripts/tasks.py" list|show|deps|tests`
-  (`--help` for options), not one-off scripts over the JSON.
+- **Queries:** list, show and trace tasks, workstreams and tests with
+  `python "{plugin}/scripts/tasks.py" list|show|deps|streams|tests` (`--help` for options), not one-off scripts over
+  the JSON.
 - **Starting a task:** agree its `done_when` with the user when setting it `in_progress`. Check the open questions in
-  the findings docs the task touches; one it depends on becomes a task or a `done_when` line now.
+  the findings docs the task touches; one it depends on becomes a task or a `done_when` line now. If the task's
+  workstream isn't `in_progress` yet, check its `depends_on` are done and set it `in_progress` first, telling the user.
 - **During:** update a JSON entry in `docs/state/` when its state changes, not at the end. Write an open question into
   its findings doc, and a note for an upcoming task into the doc its `detail` points to, when it comes up. When a
   result answers an open question, take it off its list in the same commit. Commit after each finished step, with a
