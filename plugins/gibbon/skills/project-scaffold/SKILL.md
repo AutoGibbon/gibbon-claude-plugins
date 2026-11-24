@@ -49,8 +49,11 @@ Skip a question the user has already answered.
 
 1. Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` in the project until it passes. Tell the user the
    gibbon plugin's hook shows its output at the start of every session from the next one on.
-2. If `CLAUDE.md` imports any file outside the project directory, tell the user to approve external imports for this
-   project (see their global `CLAUDE.md`) and to confirm with `/context`.
+2. If `CLAUDE.md` imports (`@path`) a file outside the project directory, check that it loads. Claude Code leaves
+   external imports off until the user approves them in a one-time dialog, and until then the `@` line is inert text
+   with no error. Ask the user to run `/context` and confirm the file is listed under Memory files. If it isn't, set
+   `hasClaudeMdExternalIncludesApproved` and `hasClaudeMdExternalIncludesWarningShown` to `true` in the project's
+   entry under `projects` in `~/.claude.json`, then check `/context` again.
 3. `git init` if the directory isn't a repository, then commit everything except ignored files, following the user's
    git rules.
 
