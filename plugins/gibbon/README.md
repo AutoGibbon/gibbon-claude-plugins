@@ -18,3 +18,7 @@ Hooks, in every project with `docs/state/`:
 - `PostToolUse` runs `hooks/post_state_check.py`, which reports `check_state.py`'s findings after an edit to
   `docs/state/`, and `hooks/post_bash_state_check.py`, which reports its errors after a Bash call that changed a file
   there.
+
+When adding a safeguard, prefer a hook that checks the result whatever tool produced it, exiting early when nothing it
+checks changed, over a rule restricting which tools Claude uses. Tool rules narrow how Claude works and miss whatever
+goes around them.
