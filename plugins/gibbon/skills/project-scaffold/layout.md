@@ -60,7 +60,8 @@ Two plugin hooks run on `Edit`, `MultiEdit` and `Write` calls to `docs/state/`:
 - `hooks/post_state_check.py` (`PostToolUse`) runs `check_state.py` after the edit and reports its errors to Claude to
   fix, and its warnings on the entries the edit touched to raise with the user.
 
-Neither sees changes made through Bash, so edit the state files with the edit tools.
+`hooks/post_bash_state_check.py` (`PostToolUse`) runs `check_state.py` after a Bash call that changed a file in
+`docs/state/` and reports its errors to Claude to fix. Changes made through Bash skip `guard_state.py`'s question.
 
 ## `tasks.json`
 

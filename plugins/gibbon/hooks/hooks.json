@@ -34,6 +34,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/post_bash_state_check.py\"",
+            "timeout": 30
+          }
+        ]
       }
     ]
   }

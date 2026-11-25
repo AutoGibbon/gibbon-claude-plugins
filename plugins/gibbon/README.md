@@ -16,4 +16,5 @@ Hooks, in every project with `docs/state/`:
 - `PreToolUse` runs `hooks/guard_state.py`, which asks the user before an edit to `tasks.json` or `tests.json` that the
   layout reserves for them.
 - `PostToolUse` runs `hooks/post_state_check.py`, which reports `check_state.py`'s findings after an edit to
-  `docs/state/`.
+  `docs/state/`, and `hooks/post_bash_state_check.py`, which reports its errors after a Bash call that changed a file
+  there.
