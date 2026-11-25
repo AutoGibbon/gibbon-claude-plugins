@@ -130,9 +130,13 @@ def main():
     print("\n== environment")
     env_path = root / "docs" / "state" / "environment.json"
     if env_path.is_file():
-        env = json.loads(env_path.read_text(encoding="utf-8"))
-        problems, notes = project_checks(root, env)
-        problems += artefact_checks(root, env)
+        try:
+            env = json.loads(env_path.read_text(encoding="utf-8"))
+        except ValueError as e:
+            problems = [f"environment.json: invalid JSON ({e}); environment checks skipped"]
+        else:
+            problems, notes = project_checks(root, env)
+            problems += artefact_checks(root, env)
     for p in problems:
         print(f"  ! {p}")
     notes += script_notes(root)
