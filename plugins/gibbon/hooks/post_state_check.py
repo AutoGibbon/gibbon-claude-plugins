@@ -19,6 +19,27 @@ def touched(warning, edit_text):
     return len(head) == 2 and f'"{head[1]}"' in edit_text
 
 
+def grouped(messages, shown=5):
+    """Return messages with those that differ only in their "<file> <id>:" id merged into one line naming up to
+    shown ids and how many more, so a change that breaks many entries the same way reports it once."""
+    groups = {}
+    for m in messages:
+        head, sep, rest = m.partition(": ")
+        parts = head.split(" ")
+        key = (parts[0], rest) if sep and len(parts) == 2 else (m, None)
+        groups.setdefault(key, []).append(parts[-1])
+    lines = []
+    for (name, rest), ids in groups.items():
+        if rest is None:
+            lines.append(name)
+        elif len(ids) == 1:
+            lines.append(f"{name} {ids[0]}: {rest}")
+        else:
+            more = f" and {len(ids) - shown} more" if len(ids) > shown else ""
+            lines.append(f"{name} {', '.join(ids[:shown])}{more}: {rest}")
+    return lines
+
+
 def main():
     event = json.load(sys.stdin)
     tool_input = event.get("tool_input", {})
@@ -34,10 +55,10 @@ def main():
         return 0
     lines = ["docs/state check after this edit:"]
     if errors:
-        lines += ["Errors; fix these now:"] + [f"  - {e}" for e in errors]
+        lines += ["Errors; fix these now:"] + [f"  - {e}" for e in grouped(errors)]
     if warnings:
         lines += ["Warnings on the entries this edit touched; tell the user rather than filling these in:"]
-        lines += [f"  - {w}" for w in warnings]
+        lines += [f"  - {w}" for w in grouped(warnings)]
     print("\n".join(lines), file=sys.stderr)
     return 2
 
