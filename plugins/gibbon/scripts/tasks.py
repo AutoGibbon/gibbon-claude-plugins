@@ -2,7 +2,7 @@
 and list tests.
 
 Usage:
-  python tasks.py list [--open] [--status S] [--workstream W]
+  python tasks.py list [--open] [--status S] [--workstream W] [--ready]
   python tasks.py show ID...
   python tasks.py deps ID
   python tasks.py streams [--open]
@@ -38,16 +38,30 @@ def is_stream(t):
     return t.get("kind") == "workstream"
 
 
-def task_line(t):
-    """Return one line for a task: status, id, workstream (or {stream} for a workstream item), next flag, dependencies
-    and title."""
-    flag = " *next" if t.get("next") else ""
+def open_deps(t, by_id):
+    """Return the ids in t's depends_on that aren't done or dropped."""
+    return [d for d in t.get("depends_on", []) if by_id.get(d, {}).get("status") not in CLOSED]
+
+
+def is_ready(t, by_id):
+    """Return whether a todo item can start now: its depends_on are closed, and so are its workstream's."""
+    if t.get("status") != "todo" or open_deps(t, by_id):
+        return False
+    ws = by_id.get(t.get("workstream"))
+    return not (ws and open_deps(ws, by_id))
+
+
+def task_line(t, by_id):
+    """Return one line for a task: status, id, workstream (or {stream} for a workstream item), next and ready flags,
+    dependencies and title."""
+    flag = (" *next" if t.get("next") else "") + (" *ready" if is_ready(t, by_id) else "")
     deps = f" <- {', '.join(t['depends_on'])}" if t.get("depends_on") else ""
     group = "{stream}" if is_stream(t) else f"({t.get('workstream', '-')})"
     return f"[{t.get('status')}] {t.get('id')} {group}{flag}{deps}: {t.get('title')}"
 
 
 def cmd_list(tasks, args):
+    by_id = {t.get("id"): t for t in tasks}
     for t in tasks:
         if args.open and t.get("status") in CLOSED:
             continue
@@ -55,7 +69,9 @@ def cmd_list(tasks, args):
             continue
         if args.workstream and t.get("workstream") != args.workstream:
             continue
-        print(task_line(t))
+        if args.ready and not is_ready(t, by_id):
+            continue
+        print(task_line(t, by_id))
 
 
 def cmd_show(tasks, args):
@@ -67,7 +83,7 @@ def cmd_show(tasks, args):
         if t is None:
             print(f"{tid}: no such task")
             continue
-        print(task_line(t))
+        print(task_line(t, by_id))
         for key in ("done_when", "evidence", "blocked_by"):
             value = t.get(key)
             if not value:
@@ -101,7 +117,7 @@ def cmd_deps(tasks, args):
     for t in tasks:
         for dep in t.get("depends_on", []):
             waited_on_by.setdefault(dep, []).append(t.get("id"))
-    print(task_line(by_id[args.id]))
+    print(task_line(by_id[args.id], by_id))
     for label, edges in (("waits on", waits_on), ("waited on by", waited_on_by)):
         print(f"{label}:")
         if edges.get(args.id):
@@ -110,19 +126,32 @@ def cmd_deps(tasks, args):
             print("  (none)")
 
 
+def counts(tasks, sid):
+    """Return the open and done task counts of workstream sid."""
+    members = [t for t in tasks if t.get("workstream") == sid]
+    return sum(1 for t in members if t.get("status") not in CLOSED), sum(
+        1 for t in members if t.get("status") == "done"
+    )
+
+
 def cmd_streams(tasks, args):
-    """Print one line per workstream item: status, id, open and done task counts, unfinished depends_on and title."""
+    """Print one line per workstream item: status, id, open and done task counts, unfinished depends_on and title.
+    Then one line per workstream string on tasks that has no item, with its counts."""
     by_id = {t.get("id"): t for t in tasks}
     for s in tasks:
         if not is_stream(s) or (args.open and s.get("status") in CLOSED):
             continue
-        members = [t for t in tasks if t.get("workstream") == s.get("id")]
-        n_open = sum(1 for t in members if t.get("status") not in CLOSED)
-        n_done = sum(1 for t in members if t.get("status") == "done")
-        waits = [d for d in s.get("depends_on", []) if by_id.get(d, {}).get("status") not in CLOSED]
+        n_open, n_done = counts(tasks, s.get("id"))
+        waits = open_deps(s, by_id)
         wait_text = f" waits on {', '.join(waits)}" if waits else ""
         flag = " *next" if s.get("next") else ""
         print(f"[{s.get('status')}] {s.get('id')}{flag} ({n_open} open, {n_done} done){wait_text}: {s.get('title')}")
+    items = {s.get("id") for s in tasks if is_stream(s)}
+    orphans = dict.fromkeys(t["workstream"] for t in tasks if t.get("workstream") and t["workstream"] not in items)
+    for sid in orphans:
+        n_open, n_done = counts(tasks, sid)
+        if not (args.open and n_open == 0):
+            print(f"[no item] {sid} ({n_open} open, {n_done} done)")
 
 
 def cmd_tests(tests, args):
@@ -144,6 +173,9 @@ def main():
     p.add_argument("--open", action="store_true", help="leave out done and dropped tasks")
     p.add_argument("--status")
     p.add_argument("--workstream")
+    p.add_argument(
+        "--ready", action="store_true", help="only todo items whose dependencies and workstream's are closed"
+    )
     p = sub.add_parser("show", help="full entries")
     p.add_argument("ids", nargs="+", metavar="ID")
     p = sub.add_parser("deps", help="what a task waits on and what waits on it, recursively")
