@@ -5,7 +5,8 @@ def check(root, env):
     """Return a message for each way the live environment differs from env["facts"], naming the fix.
 
     root is the project directory as a Path; env is docs/state/environment.json as a dict. To report something that
-    isn't a failure, such as stale extracts, return (problems, notes) instead; notes don't fail the check.
+    isn't a failure, return (problems, notes) or (problems, notes, info) instead: notes, such as a record that
+    disagrees with the live state, are raised with the user; info, such as stale extracts, is current state for Claude.
     """
     problems = []
     # Compare live state with env["facts"] here, such as a game exe's PE timestamp, a tool version or the age of

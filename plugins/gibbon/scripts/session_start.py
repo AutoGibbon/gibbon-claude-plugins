@@ -59,23 +59,23 @@ def artefact_checks(root, env):
 
 
 def project_checks(root, env):
-    """Run check(root, env) from the project's tools/project_checks.py, if it has one; return (problems, notes).
+    """Run check(root, env) from the project's tools/project_checks.py, if it has one; return (problems, notes, info).
 
-    check() returns a list of problems, or a (problems, notes) tuple.
+    check() returns a list of problems, a (problems, notes) tuple, or a (problems, notes, info) tuple.
     """
     path = root / "tools" / "project_checks.py"
     if not path.is_file():
-        return [], []
+        return [], [], []
     try:
         spec = importlib.util.spec_from_file_location("project_checks", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         result = module.check(root, env)
         if isinstance(result, tuple):
-            return list(result[0]), list(result[1])
-        return list(result), []
+            return list(result[0]), list(result[1]), list(result[2]) if len(result) > 2 else []
+        return list(result), [], []
     except Exception as e:  # Report a broken project check as a problem so the rest of the check still runs.
-        return [f"tools/project_checks.py failed: {type(e).__name__}: {e}"], []
+        return [f"tools/project_checks.py failed: {type(e).__name__}: {e}"], [], []
 
 
 def script_notes(root):
@@ -105,6 +105,9 @@ def hook_source():
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     hook = "--hook" in sys.argv
     source = hook_source() if hook else ""
     args = [a for a in sys.argv[1:] if a != "--hook"]
@@ -126,7 +129,7 @@ def main():
     if status and hook and source != "compact":
         print("  note: uncommitted changes from before this session; ask the user whether to commit them")
 
-    problems, notes = [], []
+    problems, notes, info = [], [], []
     print("\n== environment")
     env_path = root / "docs" / "state" / "environment.json"
     if env_path.is_file():
@@ -135,14 +138,16 @@ def main():
         except ValueError as e:
             problems = [f"environment.json: invalid JSON ({e}); environment checks skipped"]
         else:
-            problems, notes = project_checks(root, env)
+            problems, notes, info = project_checks(root, env)
             problems += artefact_checks(root, env)
     for p in problems:
         print(f"  ! {p}")
     notes += script_notes(root)
     for note in notes:
         print(f"  note: {note}")
-    if not problems and not notes:
+    for line in info:
+        print(f"  info: {line}")
+    if not problems and not notes and not info:
         print("  ok")
 
     print("\n== state", flush=True)

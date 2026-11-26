@@ -297,6 +297,9 @@ def ready(tasks, streams):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
     errors, warnings, tasks, tests = check(root)
     streams = {t.get("id"): t for t in tasks if is_stream(t)}

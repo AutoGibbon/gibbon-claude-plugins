@@ -164,8 +164,9 @@ def cmd_tests(tests, args):
 
 
 def main():
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="Query docs/state/tasks.json and tests.json.")
     parser.add_argument("--root", type=Path, default=None)
     sub = parser.add_subparsers(dest="cmd", required=True)
