@@ -67,38 +67,38 @@ If the project has `docs/state/` (the layout in `${CLAUDE_PLUGIN_ROOT}/skills/pr
   directory. Fix its errors before committing. Report its warnings to the user, such as a task
   started this session with no `done_when`, rather than filling them in without asking.
 
-## 4. Check before committing
+## 4. Check and commit
 
-- Cold-read the handoff. This session can't judge its own docs, because it fills gaps from the conversation
-  without noticing, so spawn a read-only subagent on Sonnet (Agent tool `model: "sonnet"`) and give it only this
-  prompt, with no summary of the session or hint of what you expect:
-
-  > This is the start of a fresh session in this project. Follow the project's CLAUDE.md startup routine (if the
-  > project has `docs/state/`, run `python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` from the project
-  > directory as its startup check), then read what it points you to for the next task. Don't change any
-  > files. Report: which task you'd work on, what done looks like for it, your first three concrete steps, what
-  > you'd need to ask the user before starting, and anything that reads as ambiguous, contradictory or stale.
-
-  Compare its answer with what this session intends next. Treat every difference as a gap in the docs, not a
-  mistake by the reader: fix the docs, and tell the user what you added. If the project has no CLAUDE.md, name its
-  status doc in the prompt instead. If subagents aren't available, re-read the status doc's next step and ask
-  whether a fresh session could act on it alone.
 - Check that links and paths you wrote resolve.
 - Run `git status` and look at what will be committed. Leave out scratch, build output, secrets and anything the
   project ignores. If unrelated or unexpected changes are present, ask before including them.
+- Commit to the current branch, following the project's and user's git rules: message style, attribution lines or
+  the rule against them, no pushing unless asked. Summarise the session's outcome in the message, not the steps
+  taken. If the rules say not to commit without asking, ask.
 
-## 5. Commit
+## 5. Cold-read the handoff
 
-Commit to the current branch, following the project's and user's git rules: message style, attribution lines or
-the rule against them, no pushing unless asked. Summarise the session's outcome in the message, not the steps taken.
-If the rules say not to commit without asking, ask.
+Read the handoff as a fresh session would, from the committed state. This session can't judge its own docs, because
+it fills gaps from the conversation without noticing, so spawn a read-only subagent on Sonnet (Agent tool
+`model: "sonnet"`) and give it only this prompt, with no summary of the session or hint of what you expect:
+
+> This is the start of a fresh session in this project. Follow the project's CLAUDE.md startup routine (if the
+> project has `docs/state/`, run `python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` from the project
+> directory as its startup check), then read what it points you to for the next task. Don't change any
+> files. Report: which task you'd work on, what done looks like for it, your first three concrete steps, what
+> you'd need to ask the user before starting, and anything that reads as ambiguous, contradictory or stale.
+
+Compare its answer with what this session intends next. Treat every difference as a gap in the docs, not a mistake
+by the reader: fix the docs, commit the fixes, and tell the user what you added. If the project has no CLAUDE.md,
+name its status doc in the prompt instead. If subagents aren't available, re-read the status doc's next step and ask
+whether a fresh session could act on it alone.
 
 ## 6. Report and hand over
 
 Reply briefly with:
 
 - where things stand and the next step, as the docs now record it;
-- the files changed, one line each, and the commit hash;
+- the files changed, one line each, and the commit hashes;
 - what the cold read got wrong or asked about, and what you added to the docs because of it;
 - anything left uncommitted or unresolved, and why.
 
