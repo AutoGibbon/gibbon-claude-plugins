@@ -14,10 +14,11 @@ Hooks, in every project with `docs/state/`:
   `scripts/check_state.py`'s validation and next tasks, and `docs/status.md`. It prints the routine in full rather
   than a pointer to it, because Claude follows it more reliably that way; don't shorten it to save context.
 - `PreToolUse` runs `hooks/guard_state.py`, which asks the user before an edit to `tasks.json` or `tests.json` that the
-  layout reserves for them.
+  layout reserves for them, and `hooks/pre_bash_state_stamp.py`, which records the state files' modification times
+  before a Bash call.
 - `PostToolUse` runs `hooks/post_state_check.py`, which reports `check_state.py`'s findings after an edit to
   `docs/state/`, and `hooks/post_bash_state_check.py`, which reports its errors after a Bash call that changed a file
-  there.
+  there since `pre_bash_state_stamp.py` recorded it.
 
 When adding a safeguard, prefer a hook that checks the result whatever tool produced it, exiting early when nothing it
 checks changed, over a rule restricting which tools Claude uses. Tool rules narrow how Claude works and miss whatever

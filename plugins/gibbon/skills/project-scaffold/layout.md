@@ -17,6 +17,7 @@ notes, git as the history, and a script that checks the environment at session s
 | The project's own environment checks | `tools/project_checks.py`: `check(root, env)` returns a message for each check that fails, or `(problems, notes)` or `(problems, notes, info)`: notes are raised with the user without failing the check, info is current state for Claude alone | Script | Read-only |
 | Task and test queries | The gibbon plugin's `scripts/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it), `streams` and `tests` | Script | Read-only |
 | Edit checks | The gibbon plugin's `PreToolUse` and `PostToolUse` hooks on edits to `docs/state/` | Hook | — |
+| Python in UTF-8 mode | `.claude/settings.json`: `"env": {"PYTHONUTF8": "1"}`, which Claude Code passes to every command and hook it runs in the project | JSON | Kept alongside any other settings the project has |
 
 Templates for project files are in `templates/` next to this file: `project_checks.py` gets the project's own checks,
 and a project with none leaves it out. The plugin's scripts are in `scripts/` and its hooks in `hooks/`, two folders
@@ -46,8 +47,9 @@ every project, and Claude Code adds its output to the session's context. In a pr
 Elsewhere it prints nothing. `--hook` makes the script exit 0 even when a check fails, because the
 output only reaches the context on exit 0; the output then ends with a line asking Claude to tell the user. Without
 `--hook` it exits 1 on a failed check. Skills run it from the project directory as
-`python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`. The scripts use only the standard library, so any `python`
-on `PATH` runs them.
+`python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`. The scripts use only the standard library, so any
+`python` on `PATH` runs them. `-X utf8` puts Python in UTF-8 mode; without it, Python on Windows reads and prints in
+the console's code page and fails on characters outside it.
 
 ## Edit checks
 
@@ -60,8 +62,9 @@ Two plugin hooks run on `Edit`, `MultiEdit` and `Write` calls to `docs/state/`:
 - `hooks/post_state_check.py` (`PostToolUse`) runs `check_state.py` after the edit and reports its errors to Claude to
   fix, and its warnings on the entries the edit touched to raise with the user.
 
-`hooks/post_bash_state_check.py` (`PostToolUse`) runs `check_state.py` after a Bash call that changed a file in
-`docs/state/` and reports its errors to Claude to fix. Changes made through Bash skip `guard_state.py`'s question.
+`hooks/pre_bash_state_stamp.py` (`PreToolUse`) records the modification times of the files in `docs/state/` before a
+Bash call, and `hooks/post_bash_state_check.py` (`PostToolUse`) runs `check_state.py` when the call changed one and
+reports its errors to Claude to fix. Changes made through Bash skip `guard_state.py`'s question.
 
 ## `tasks.json`
 

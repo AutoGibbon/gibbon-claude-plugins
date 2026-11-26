@@ -27,8 +27,8 @@ Read:
   what the docs say, and list anything present that the docs don't mention.
 
 If the project already has `docs/state/`, also run the session start check,
-`python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, from the project directory and report its problems and
-notes, such as per-project scripts, a `SessionStart` hook or a copied session routine the plugin replaces. If the
+`python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, from the project directory and report its problems
+and notes, such as per-project scripts, a `SessionStart` hook or a copied session routine the plugin replaces. If the
 project has a `tools/session_start.py` from an earlier version of the layout, read its `project_checks()` and list
 each check it makes. Check that `tools/project_checks.py` makes those checks and the ones the docs ask for by hand.
 
@@ -80,8 +80,9 @@ changelog or git history.
    out if there are none. If the project has a `tools/session_start.py` from an earlier version of the layout, move
    its `project_checks()` body into `check()`, using the `root` parameter where it used `ROOT`. Then delete
    `tools/session_start.py`, `tools/check_state.py` and `tools/tasks.py`, and remove the `SessionStart` hook that runs
-   them from `.claude/settings.json`, deleting the file if nothing else is left in it. Run
-   `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` until it passes with no notes.
+   them from `.claude/settings.json`. Set `"PYTHONUTF8": "1"` under `env` in `.claude/settings.json`, creating the
+   file if there is none and keeping its other settings. Run
+   `python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` until it passes with no notes.
 4. **Trim the prose docs.** Cut `docs/status.md` to focus, half-done work and gotchas, linking to `docs/state/`.
    In other docs, replace "Next" lists and any status wording or dated history ("done", "(next)", "Answered:",
    "Partly answered", "settled on", "seen in tests") with a link to `tasks.json`; keep their reasoning and decisions.
@@ -99,8 +100,8 @@ changelog or git history.
    in code. Update or delete the memories from the
    audit so they name the new files, and move state held in memory into `environment.json`; update `MEMORY.md` to
    match.
-6. **Check:** run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, which prints `docs/status.md`, and from
-   its output alone tell the user what the next step is. Ask whether it matches what they expect, and tell them the
+6. **Check:** run `python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, which prints `docs/status.md`,
+   and from its output alone tell the user what the next step is. Ask whether it matches what they expect, and tell them the
    gibbon plugin's hook shows the check's output at the start of the next session without running anything.
    Recommend an audit-only run of this skill in a fresh session: a session that didn't do the migration finds what
    this one can't see in its own work.

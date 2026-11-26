@@ -63,7 +63,7 @@ If the project has `docs/state/` (the layout in `${CLAUDE_PLUGIN_ROOT}/skills/pr
 - Add or fill `tests.json` entries, and update `environment.json`.
 - Rewrite `docs/status.md` as focus, half-done work and gotchas, rather than appending to it. Put notes for upcoming
   tasks in their `detail` docs and facts in findings, as "What `status.md` holds" in `layout.md` says.
-- Run the session start check, `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, from the project
+- Run the session start check, `python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"`, from the project
   directory. Fix its errors before committing. Report its warnings to the user, such as a task
   started this session with no `done_when`, rather than filling them in without asking.
 
@@ -74,7 +74,7 @@ If the project has `docs/state/` (the layout in `${CLAUDE_PLUGIN_ROOT}/skills/pr
   prompt, with no summary of the session or hint of what you expect:
 
   > This is the start of a fresh session in this project. Follow the project's CLAUDE.md startup routine (if the
-  > project has `docs/state/`, run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` from the project
+  > project has `docs/state/`, run `python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` from the project
   > directory as its startup check), then read what it points you to for the next task. Don't change any
   > files. Report: which task you'd work on, what done looks like for it, your first three concrete steps, what
   > you'd need to ask the user before starting, and anything that reads as ambiguous, contradictory or stale.

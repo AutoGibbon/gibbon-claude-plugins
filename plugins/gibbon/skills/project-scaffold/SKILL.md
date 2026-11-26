@@ -42,13 +42,14 @@ Skip a question the user has already answered.
   `layout.md`, and Working notes for anything the user said about how they want to work. Keep it under about 80 lines.
 - The investigation docs from step 2.3, if wanted. Add a `docs/tests/README.md` only for what is specific to this
   project's tests (see "Writing a test" in `layout.md`).
+- `.claude/settings.json` with `{"env": {"PYTHONUTF8": "1"}}`.
 - `.gitignore` with `scratch/`, `build/` and `.claude/settings.local.json`, plus the language's usual entries.
 - `scratch/`, for files the agent manages that aren't committed.
 
 ## 4. Check and commit
 
-1. Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` in the project until it passes. Tell the user the
-   gibbon plugin's hook shows its output at the start of every session from the next one on.
+1. Run `python -X utf8 "${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py"` in the project until it passes. Tell the
+   user the gibbon plugin's hook shows its output at the start of every session from the next one on.
 2. If `CLAUDE.md` imports (`@path`) a file outside the project directory, check that it loads. Claude Code leaves
    external imports off until the user approves them in a one-time dialog, and until then the `@` line is inert text
    with no error. Ask the user to run `/context` and confirm the file is listed under Memory files. If it isn't, set

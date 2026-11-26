@@ -26,7 +26,8 @@ SUPERSEDED_SCRIPTS = ("session_start.py", "check_state.py", "tasks.py")
 
 
 def run(root, *args):
-    return subprocess.run(args, check=False, cwd=root, capture_output=True, text=True).stdout.rstrip()
+    result = subprocess.run(args, check=False, cwd=root, capture_output=True, encoding="utf-8", errors="replace")
+    return result.stdout.rstrip()
 
 
 def sha256(path):
@@ -96,6 +97,27 @@ def script_notes(root):
     ]
 
 
+def sets_utf8_mode(settings):
+    """Return whether the Claude Code settings file at settings sets PYTHONUTF8=1 under env."""
+    try:
+        env = json.loads(settings.read_text(encoding="utf-8")).get("env", {})
+    except (OSError, ValueError, AttributeError):
+        return False
+    return isinstance(env, dict) and str(env.get("PYTHONUTF8")) == "1"
+
+
+def utf8_notes(root):
+    """Return a note if neither the project's .claude/settings.json nor the user's settings.json sets PYTHONUTF8=1
+    under env, or an empty list."""
+    user_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
+    if sets_utf8_mode(root / ".claude" / "settings.json") or sets_utf8_mode(user_dir / "settings.json"):
+        return []
+    return [
+        ".claude/settings.json doesn't set PYTHONUTF8=1 under env, so Python on Windows prints in the console's code "
+        "page; the gibbon:project-state-migrate skill adds it"
+    ]
+
+
 def hook_source():
     """Return the SessionStart source (startup, resume, clear or compact) from the hook input on stdin, or ""."""
     try:
@@ -142,7 +164,7 @@ def main():
             problems += artefact_checks(root, env)
     for p in problems:
         print(f"  ! {p}")
-    notes += script_notes(root)
+    notes += script_notes(root) + utf8_notes(root)
     for note in notes:
         print(f"  note: {note}")
     for line in info:
@@ -151,7 +173,8 @@ def main():
         print("  ok")
 
     print("\n== state", flush=True)
-    state = subprocess.run([sys.executable, str(HERE / "check_state.py"), str(root)], check=False, cwd=root)
+    check_state = [sys.executable, "-X", "utf8", str(HERE / "check_state.py"), str(root)]
+    state = subprocess.run(check_state, check=False, cwd=root)
 
     status_md = root / "docs" / "status.md"
     print("\n== docs/status.md")

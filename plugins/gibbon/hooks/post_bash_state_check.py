@@ -1,42 +1,33 @@
 """Validate docs/state/ after a Bash call that changed one of its JSON files, and report the errors to Claude.
 
 Run by the gibbon plugin's PostToolUse hook with the tool call as JSON on stdin. Compares the state files'
-modification times with those recorded for the session in the temp directory, and exits 0 at once when none changed.
-Otherwise exits 2 with the errors on stderr, which Claude Code shows to Claude, or 0 when there are none.
+modification times with those pre_bash_state_stamp.py recorded before the call, and exits 0 at once when none changed
+or nothing was recorded. Otherwise exits 2 with the errors on stderr, which Claude Code shows to Claude, or 0 when
+there are none.
 """
 
 import json
 import sys
-import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "scripts"))
 sys.path.insert(0, str(HERE))
 
-
-def state_dir(cwd):
-    """Return the docs/state directory of cwd or its nearest parent that has one, or None."""
-    for d in [cwd, *cwd.parents]:
-        if (d / "docs" / "state").is_dir():
-            return d / "docs" / "state"
-    return None
+from pre_bash_state_stamp import mtimes, stamp_path  # noqa: E402
 
 
 def main():
     event = json.load(sys.stdin)
-    state = state_dir(Path(event.get("cwd") or "."))
-    if state is None:
-        return 0
-    mtimes = {str(p): p.stat().st_mtime_ns for p in sorted(state.glob("*.json"))}
-    stamp = Path(tempfile.gettempdir()) / f"gibbon-state-{event.get('session_id', 'none')}.json"
+    stamp = stamp_path(event)
     try:
-        seen = json.loads(stamp.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        seen = None
-    if seen == mtimes:
+        before = json.loads(stamp.read_text(encoding="utf-8"))
+        state = Path(before["state"])
+    except (OSError, ValueError, KeyError, TypeError):
         return 0
-    stamp.write_text(json.dumps(mtimes), encoding="utf-8")
+    stamp.unlink(missing_ok=True)
+    if not state.is_dir() or mtimes(state) == before.get("mtimes"):
+        return 0
 
     import check_state
     from post_state_check import grouped

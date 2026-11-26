@@ -2,8 +2,8 @@
   for you. `docs/status.md` is printed below; work on the `next` items in `docs/state/tasks.json` unless the user says
   otherwise.
 - **Queries:** list, show and trace tasks, workstreams and tests with
-  `python "{plugin}/scripts/tasks.py" list|show|deps|streams|tests` (`--help` for options), not one-off scripts over
-  the JSON.
+  `python -X utf8 "{plugin}/scripts/tasks.py" list|show|deps|streams|tests` (`--help` for options), not one-off
+  scripts over the JSON.
 - **Starting a task:** agree its `done_when` with the user when setting it `in_progress`. Check the open questions in
   the findings docs the task touches; one it depends on becomes a task or a `done_when` line now. If the task's
   workstream isn't `in_progress` yet, check its `depends_on` are done and set it `in_progress` first, telling the user.
