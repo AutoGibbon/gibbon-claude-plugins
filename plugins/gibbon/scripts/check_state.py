@@ -16,7 +16,7 @@ from pathlib import Path
 
 TASK_STATUSES = ["todo", "in_progress", "blocked", "done", "dropped"]
 CLOSED = ("done", "dropped")
-# Workstream statuses under which its tasks may be in_progress or done.
+# Workstream statuses under which its tasks may be in_progress.
 STREAM_STARTED = ("in_progress", "done")
 WORKSTREAM = "workstream"
 TEST_STATUSES = ["planned", "passed", "failed", "partial", "inconclusive", "not_run", "aborted"]
@@ -150,7 +150,7 @@ def check_streams(tasks, task_ids, errors, warnings):
             continue
         members.setdefault(ws, []).append(t)
         stream_status = streams[ws].get("status")
-        if status in STREAM_STARTED and stream_status not in STREAM_STARTED:
+        if status == "in_progress" and stream_status not in STREAM_STARTED:
             warnings.append(f"tasks.json {tid}: {status} while its workstream {ws} is {stream_status}")
         if t.get("next") and stream_status != "in_progress":
             warnings.append(f"tasks.json {tid}: next is set while its workstream {ws} is {stream_status}")

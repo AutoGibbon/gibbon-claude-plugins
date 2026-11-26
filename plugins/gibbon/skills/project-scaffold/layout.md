@@ -127,7 +127,7 @@ A workstream groups tasks toward one goal, held in its `done_when`. It has the s
 starts, not its own tasks; a phase is a workstream that depends on the one before it.
 
 - A workstream goes `in_progress` only once its `depends_on` are done, and its tasks go `in_progress` only while it is
-  `in_progress`. Close it once its tasks are closed.
+  `in_progress`. Close it once its tasks are closed. A paused workstream goes back to `todo` and keeps its done tasks.
 - `next` on a workstream marks the one to start when none is `in_progress`.
 - A task that depends on its own workstream, directly or through other items, is a cycle and fails the check.
 - Until a project has a workstream item, `workstream` strings on tasks only warn, so projects from before workstreams
