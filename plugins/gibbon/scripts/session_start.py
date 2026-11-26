@@ -144,12 +144,16 @@ def main():
     print(ROUTINE.read_text(encoding="utf-8").replace("{plugin}", PLUGIN_ROOT.as_posix()).rstrip())
 
     print("\n== git")
-    status = run(root, "git", "status", "--short")
-    print(status or "(clean)")
-    print(run(root, "git", "log", "--oneline", "-5"))
-    # After compaction the changes are this session's own work in progress.
-    if status and hook and source != "compact":
-        print("  note: uncommitted changes from before this session; ask the user whether to commit them")
+    in_repo = run(root, "git", "rev-parse", "--is-inside-work-tree") == "true"
+    if in_repo:
+        status = run(root, "git", "status", "--short")
+        print(status or "(clean)")
+        print(run(root, "git", "log", "--oneline", "-5") or "(no commits)")
+        # After compaction the changes are this session's own work in progress.
+        if status and hook and source != "compact":
+            print("  note: uncommitted changes from before this session; ask the user whether to commit them")
+    else:
+        print("  ! not a git repository")
 
     problems, notes, info = [], [], []
     print("\n== environment")
@@ -180,7 +184,7 @@ def main():
     print("\n== docs/status.md")
     print(status_md.read_text(encoding="utf-8").rstrip() if status_md.is_file() else "  ! docs/status.md missing")
 
-    failed = bool(problems or state.returncode)
+    failed = bool(problems or state.returncode or not in_repo)
     if hook:
         if failed:
             print("\nSession start check found problems; tell the user before starting work.")
