@@ -30,7 +30,7 @@ def stamp_path(event):
 
 
 def main():
-    event = json.load(sys.stdin)
+    event = json.loads(sys.stdin.buffer.read().decode("utf-8"))
     state = state_dir(Path(event.get("cwd") or "."))
     if state is not None:
         stamp = {"state": str(state), "mtimes": mtimes(state)}

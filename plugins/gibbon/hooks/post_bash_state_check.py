@@ -18,7 +18,7 @@ from pre_bash_state_stamp import mtimes, stamp_path  # noqa: E402
 
 
 def main():
-    event = json.load(sys.stdin)
+    event = json.loads(sys.stdin.buffer.read().decode("utf-8"))
     stamp = stamp_path(event)
     try:
         before = json.loads(stamp.read_text(encoding="utf-8"))

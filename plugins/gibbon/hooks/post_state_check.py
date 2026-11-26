@@ -41,7 +41,7 @@ def grouped(messages, shown=5):
 
 
 def main():
-    event = json.load(sys.stdin)
+    event = json.loads(sys.stdin.buffer.read().decode("utf-8"))
     tool_input = event.get("tool_input", {})
     path = Path(tool_input.get("file_path", ""))
     if path.suffix != ".json" or path.parent.parts[-2:] != ("docs", "state"):

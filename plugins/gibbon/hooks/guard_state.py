@@ -54,7 +54,7 @@ def test_changes(before, after):
 
 
 def main():
-    event = json.load(sys.stdin)
+    event = json.loads(sys.stdin.buffer.read().decode("utf-8"))
     tool, tool_input = event.get("tool_name"), event.get("tool_input", {})
     path = Path(tool_input.get("file_path", ""))
     if path.name not in ("tasks.json", "tests.json") or path.parent.parts[-2:] != ("docs", "state"):

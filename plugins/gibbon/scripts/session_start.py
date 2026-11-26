@@ -121,7 +121,7 @@ def utf8_notes(root):
 def hook_source():
     """Return the SessionStart source (startup, resume, clear or compact) from the hook input on stdin, or ""."""
     try:
-        return json.load(sys.stdin).get("source", "")
+        return json.loads(sys.stdin.buffer.read().decode("utf-8")).get("source", "")
     except (ValueError, AttributeError):
         return ""
 
