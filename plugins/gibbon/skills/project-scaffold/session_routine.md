@@ -1,6 +1,6 @@
 - **Start:** raise any problems and notes this check reports with the user; `info:` lines describe the current state
-  for you. `docs/status.md` is printed below; work on the `next` items in `docs/state/tasks.json` unless the user says
-  otherwise.
+  for you. `docs/status.md` is printed in its own `== docs/status.md` section; work on the items listed under Next in
+  the `== state` section unless the user says otherwise.
 - **Queries:** list, show and trace tasks, workstreams and tests with
   `python -X utf8 "{plugin}/scripts/tasks.py" list|show|deps|streams|tests` (`--help` for options), not one-off
   scripts over the JSON.

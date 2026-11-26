@@ -1,4 +1,5 @@
-"""Validate docs/state/ after a Bash call that changed one of its JSON files, and report the errors to Claude.
+"""Validate docs/state/ after a Bash call that changed one of its JSON files or docs/status.md, and report the errors
+to Claude.
 
 Run by the gibbon plugin's PostToolUse hook with the tool call as JSON on stdin. Compares the state files'
 modification times with those pre_bash_state_stamp.py recorded before the call, and exits 0 at once when none changed

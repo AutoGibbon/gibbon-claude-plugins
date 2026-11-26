@@ -1,12 +1,13 @@
 """Print what a new session in a docs/state/ project needs before it starts work: the session routine, git state,
 environment checks, notes on the project's scripts, the state check with the tasks to pick up, and docs/status.md.
 
-Usage: python session_start.py [--hook] [PROJECT_DIR]
+Usage: python session_start.py [--hook] [--part routine|state|status] [PROJECT_DIR]
 
-PROJECT_DIR defaults to $CLAUDE_PROJECT_DIR, then the current directory. Exits 1 if a check fails. With --hook, as the
-gibbon plugin's SessionStart hook runs it with the hook input on stdin, prints nothing for a project without
-docs/state/ and always exits 0, because Claude Code adds a SessionStart hook's output to the session's context only
-when the hook exits 0. Reads only.
+PROJECT_DIR defaults to $CLAUDE_PROJECT_DIR, then the current directory. Exits 1 if a check fails. --part prints one
+section: routine (the session routine, git and environment), state (the state check) or status (docs/status.md, cut to
+fit the hook output limit); without it all three print. With --hook, as the gibbon plugin's SessionStart hooks run
+it with the hook input on stdin, prints nothing for a project without docs/state/ and always exits 0, because Claude
+Code adds a SessionStart hook's output to the session's context only when the hook exits 0. Reads only.
 """
 
 import hashlib
@@ -17,12 +18,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+from check_state import HOOK_OUTPUT_LIMIT, STATUS_HEADER, STATUS_MD_LIMIT
+
 HERE = Path(__file__).resolve().parent
 PLUGIN_ROOT = HERE.parent
 # The routine's {plugin} placeholders become PLUGIN_ROOT when it is printed.
 ROUTINE = PLUGIN_ROOT / "skills" / "project-scaffold" / "session_routine.md"
 # Scripts projects held under earlier versions of the layout, which the plugin's scripts replace.
 SUPERSEDED_SCRIPTS = ("session_start.py", "check_state.py", "tasks.py")
+# The output sections --part selects; the plugin runs one SessionStart hook per part, since each hook's output reaching
+# the context is capped at HOOK_OUTPUT_LIMIT characters.
+PARTS = ("routine", "state", "status")
+STATUS_CUT = "[... rest of docs/status.md not shown]"
 
 
 def run(root, *args):
@@ -126,20 +133,8 @@ def hook_source():
         return ""
 
 
-def main():
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="replace")
-    hook = "--hook" in sys.argv
-    source = hook_source() if hook else ""
-    args = [a for a in sys.argv[1:] if a != "--hook"]
-    root = Path(args[0] if args else os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
-    if not (root / "docs" / "state").is_dir():
-        if hook:
-            return 0
-        print(f"{root} has no docs/state/; nothing to check")
-        return 1
-
+def print_routine(root, source, hook):
+    """Print the session routine, git state and environment checks; return whether a check failed."""
     print("== session routine (from the gibbon plugin; part of this project's instructions)")
     print(ROUTINE.read_text(encoding="utf-8").replace("{plugin}", PLUGIN_ROOT.as_posix()).rstrip())
 
@@ -175,16 +170,73 @@ def main():
         print(f"  info: {line}")
     if not problems and not notes and not info:
         print("  ok")
+    return bool(problems or not in_repo)
 
-    print("\n== state", flush=True)
+
+def print_state(root):
+    """Print check_state.py's output; return whether it failed."""
+    print("== state", flush=True)
     check_state = [sys.executable, "-X", "utf8", str(HERE / "check_state.py"), str(root)]
-    state = subprocess.run(check_state, check=False, cwd=root)
+    return subprocess.run(check_state, check=False, cwd=root).returncode != 0
 
+
+def print_status(root, trim):
+    """Print docs/status.md; with trim, cut it at a line end to fit HOOK_OUTPUT_LIMIT, with a note saying so."""
     status_md = root / "docs" / "status.md"
-    print("\n== docs/status.md")
-    print(status_md.read_text(encoding="utf-8").rstrip() if status_md.is_file() else "  ! docs/status.md missing")
+    print(STATUS_HEADER)
+    if not status_md.is_file():
+        print("  ! docs/status.md missing")
+        return
+    text = status_md.read_text(encoding="utf-8").rstrip()
+    if not trim or len(text) <= STATUS_MD_LIMIT:
+        print(text)
+        return
+    note = (
+        f"  note: docs/status.md is {len(text)} characters, over this hook's output limit, so only its start is shown; "
+        "read the file for the rest and tell the user to shorten it"
+    )
+    # Four newlines join the header, note, cut text and STATUS_CUT.
+    cut = text[: HOOK_OUTPUT_LIMIT - len(STATUS_HEADER) - len(note) - len(STATUS_CUT) - 4]
+    if "\n" in cut:
+        cut = cut[: cut.rfind("\n")]
+    print(f"{note}\n{cut}\n{STATUS_CUT}")
 
-    failed = bool(problems or state.returncode or not in_repo)
+
+def main():
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            # Write LF line ends, so the output's length on Windows equals the character count HOOK_OUTPUT_LIMIT caps.
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
+    hook = "--hook" in sys.argv
+    source = hook_source() if hook else ""
+    args = [a for a in sys.argv[1:] if a != "--hook"]
+    part = None
+    if "--part" in args:
+        i = args.index("--part")
+        part = args[i + 1] if i + 1 < len(args) else None
+        del args[i : i + 2]
+        if part not in PARTS:
+            print(f"--part takes one of {', '.join(PARTS)}", file=sys.stderr)
+            return 0 if hook else 2
+    root = Path(args[0] if args else os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
+    if not (root / "docs" / "state").is_dir():
+        if hook:
+            return 0
+        print(f"{root} has no docs/state/; nothing to check")
+        return 1
+
+    failed = False
+    if part in (None, "routine"):
+        failed |= print_routine(root, source, hook)
+    if part in (None, "state"):
+        if part is None:
+            print()
+        failed |= print_state(root)
+    if part in (None, "status"):
+        if part is None:
+            print()
+        print_status(root, part == "status")
+
     if hook:
         if failed:
             print("\nSession start check found problems; tell the user before starting work.")

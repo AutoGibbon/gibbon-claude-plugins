@@ -1,4 +1,5 @@
-"""Record the modification times of docs/state/'s JSON files before a Bash call, for post_bash_state_check.py.
+"""Record the modification times of docs/state/'s JSON files and docs/status.md before a Bash call, for
+post_bash_state_check.py.
 
 Run by the gibbon plugin's PreToolUse hook with the tool call as JSON on stdin. Writes the times to a file in the temp
 directory named after the tool call, and nothing for a directory without docs/state/. Always exits 0.
@@ -19,8 +20,9 @@ def state_dir(cwd):
 
 
 def mtimes(state):
-    """Return {path: modification time in ns} for each JSON file in state."""
-    return {str(p): p.stat().st_mtime_ns for p in sorted(state.glob("*.json"))}
+    """Return {path: modification time in ns} for each JSON file in state and for docs/status.md beside it."""
+    files = sorted(state.glob("*.json")) + [p for p in [state.parent / "status.md"] if p.is_file()]
+    return {str(p): p.stat().st_mtime_ns for p in files}
 
 
 def stamp_path(event):

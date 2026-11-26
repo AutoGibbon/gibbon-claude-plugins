@@ -6,7 +6,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py\" --hook",
+            "command": "python -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py\" --hook --part routine",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "python -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py\" --hook --part state",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "python -X utf8 \"${CLAUDE_PLUGIN_ROOT}/scripts/session_start.py\" --hook --part status",
             "timeout": 60
           }
         ]

@@ -3,8 +3,9 @@
 Usage: python check_state.py [REPO_ROOT]
 
 Exits 1 on errors: a missing or invalid file, a bad id, status or kind, a reference to a task, workstream, test,
-commit or path that doesn't exist, a nested workstream, or a dependency cycle. Warnings (gaps in done_when, evidence,
-results or blocked_by, and work started out of order) are printed but don't fail. Reads only.
+commit or path that doesn't exist, a nested workstream, a dependency cycle, or a docs/status.md too long for the
+session start hook to show whole. Warnings (gaps in done_when, evidence, results or blocked_by, and work started out
+of order) are printed but don't fail. Reads only.
 """
 
 import json
@@ -38,6 +39,12 @@ ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{7,40}$")
 # Evidence with a slash and no spaces is a repo path, checked for existence; other text is accepted as written.
 PATH_RE = re.compile(r"^[^\s]*/[^\s]*$")
+# Claude Code's cap on the characters of one hook's output that reach the context.
+HOOK_OUTPUT_LIMIT = 10_000
+STATUS_HEADER = "== docs/status.md"
+# The most characters docs/status.md can hold, trailing whitespace aside, and still print whole after STATUS_HEADER in
+# session_start.py's status hook.
+STATUS_MD_LIMIT = HOOK_OUTPUT_LIMIT - len(STATUS_HEADER) - 2
 
 
 def load(path, errors):
@@ -182,6 +189,14 @@ def check(root):
     tests = check_header("tests.json", tests_data, TEST_STATUSES, "tests", errors) if tests_data else []
     if env_data and env_data.get("schema") != 1:
         errors.append("environment.json: schema must be 1")
+    status_md = root / "docs" / "status.md"
+    if status_md.is_file():
+        size = len(status_md.read_text(encoding="utf-8").rstrip())
+        if size > STATUS_MD_LIMIT:
+            errors.append(
+                f"docs/status.md: {size} characters, over the {STATUS_MD_LIMIT} the session start hook shows whole; "
+                "shorten it"
+            )
 
     task_ids = check_ids("tasks.json", tasks, errors)
     test_ids = check_ids("tests.json", tests, errors)
@@ -299,7 +314,8 @@ def ready(tasks, streams):
 def main():
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="replace")
+            # Write LF line ends, so the output's length on Windows equals the character count HOOK_OUTPUT_LIMIT caps.
+            stream.reconfigure(encoding="utf-8", errors="replace", newline="\n")
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
     errors, warnings, tasks, tests = check(root)
     streams = {t.get("id"): t for t in tasks if is_stream(t)}
@@ -318,9 +334,8 @@ def main():
                     print(f"  {'- ' if i == 0 else '  '}{line}")
     candidates = ready(tasks, streams)
     if candidates:
-        print("Ready to start:")
-        for t in candidates:
-            print(f"  - {item_line(t)}{' (workstream)' if is_stream(t) else ''}")
+        ids = [f"{t.get('id')}{' (workstream)' if is_stream(t) else ''}" for t in candidates]
+        print(f"Ready to start: {', '.join(ids)}")
     pending = [t for t in tests if t.get("status") == "planned"]
     if pending:
         print("Planned tests:")

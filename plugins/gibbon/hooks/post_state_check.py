@@ -1,5 +1,5 @@
-"""Validate docs/state/ after an Edit, MultiEdit or Write to one of its JSON files, and report to Claude the errors
-and the warnings about entries the edit touched.
+"""Validate docs/state/ after an Edit, MultiEdit or Write to one of its JSON files or to docs/status.md, and report to
+Claude the errors and the warnings about entries the edit touched.
 
 Run by the gibbon plugin's PostToolUse hook with the tool call as JSON on stdin. Exits 2 with the report on stderr,
 which Claude Code shows to Claude, or 0 when there is nothing to report.
@@ -44,9 +44,12 @@ def main():
     event = json.loads(sys.stdin.buffer.read().decode("utf-8"))
     tool_input = event.get("tool_input", {})
     path = Path(tool_input.get("file_path", ""))
-    if path.suffix != ".json" or path.parent.parts[-2:] != ("docs", "state"):
+    if path.suffix == ".json" and path.parent.parts[-2:] == ("docs", "state"):
+        root = path.parent.parent.parent
+    elif path.name == "status.md" and path.parent.name == "docs" and (path.parent / "state").is_dir():
+        root = path.parent.parent
+    else:
         return 0
-    root = path.parent.parent.parent
     edit_text = tool_input.get("content", "") + tool_input.get("new_string", "")
     edit_text += "".join(e.get("new_string", "") for e in tool_input.get("edits") or [])
     errors, warnings, _, _ = check_state.check(root)

@@ -16,7 +16,7 @@ notes, git as the history, and a script that checks the environment at session s
 | Session start check | The gibbon plugin's `scripts/session_start.py`, which runs the plugin's `scripts/check_state.py`, run by the plugin's `SessionStart` hook | Script | Read-only |
 | The project's own environment checks | `tools/project_checks.py`: `check(root, env)` returns a message for each check that fails, or `(problems, notes)` or `(problems, notes, info)`: notes are raised with the user without failing the check, info is current state for Claude alone | Script | Read-only |
 | Task and test queries | The gibbon plugin's `scripts/tasks.py`: `list`, `show`, `deps` (what a task waits on and what waits on it), `streams` and `tests` | Script | Read-only |
-| Edit checks | The gibbon plugin's `PreToolUse` and `PostToolUse` hooks on edits to `docs/state/` | Hook | — |
+| Edit checks | The gibbon plugin's `PreToolUse` and `PostToolUse` hooks on edits to `docs/state/` and `docs/status.md` | Hook | — |
 | Python in UTF-8 mode | `.claude/settings.json`: `"env": {"PYTHONUTF8": "1"}`, which Claude Code passes to every command and hook it runs in the project | JSON | Kept alongside any other settings the project has |
 
 Templates for project files are in `templates/` next to this file: `project_checks.py` gets the project's own checks,
@@ -34,15 +34,17 @@ process gaps are for the user to weigh.
 
 ## Session start check
 
-The gibbon plugin's `SessionStart` hook runs `scripts/session_start.py --hook` on startup, `/clear` and compaction in
-every project, and Claude Code adds its output to the session's context. In a project with `docs/state/` it prints:
+The gibbon plugin's `SessionStart` hooks run `scripts/session_start.py --hook` on startup, `/clear` and compaction in
+every project, once for each `--part` (`routine`, `state`, `status`) because Claude Code caps each hook's output at
+10,000 characters, and Claude Code adds their output to the session's context. In a project with `docs/state/` they
+print:
 
 - the session routine, with the plugin's path filled in;
 - git status and recent commits, and on startup, `/clear` or resume, a note that uncommitted changes are left over;
 - the problems `tools/project_checks.py` and the artefact hash comparison find, and notes on per-project scripts the
   plugin replaces;
 - `check_state.py`'s output, which ends with the tasks to pick up;
-- `docs/status.md`.
+- `docs/status.md`, cut at a line end to fit the cap, with a note saying so.
 
 Elsewhere it prints nothing. `--hook` makes the script exit 0 even when a check fails, because the
 output only reaches the context on exit 0; the output then ends with a line asking Claude to tell the user. Without
@@ -59,12 +61,13 @@ Two plugin hooks run on `Edit`, `MultiEdit` and `Write` calls to `docs/state/`:
   changes a task field other than `status`, `evidence`, `blocked_by`, `next` and `updated`, and before an edit to
   `tests.json` that removes a test or changes the `checks` of one that has run. Creating either file goes through,
   since the scaffold and migrate skills agree its contents with the user first.
-- `hooks/post_state_check.py` (`PostToolUse`) runs `check_state.py` after the edit and reports its errors to Claude to
-  fix, and its warnings on the entries the edit touched to raise with the user.
+- `hooks/post_state_check.py` (`PostToolUse`) runs `check_state.py` after the edit, and after an edit to
+  `docs/status.md`, and reports its errors to Claude to fix, and its warnings on the entries the edit touched to raise
+  with the user.
 
-`hooks/pre_bash_state_stamp.py` (`PreToolUse`) records the modification times of the files in `docs/state/` before a
-Bash call, and `hooks/post_bash_state_check.py` (`PostToolUse`) runs `check_state.py` when the call changed one and
-reports its errors to Claude to fix. Changes made through Bash skip `guard_state.py`'s question.
+`hooks/pre_bash_state_stamp.py` (`PreToolUse`) records the modification times of the files in `docs/state/` and of
+`docs/status.md` before a Bash call, and `hooks/post_bash_state_check.py` (`PostToolUse`) runs `check_state.py` when
+the call changed one and reports its errors to Claude to fix. Changes made through Bash skip `guard_state.py`'s question.
 
 ## `tasks.json`
 

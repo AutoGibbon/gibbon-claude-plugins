@@ -9,16 +9,18 @@ Claude Code plugin for project state tracking.
 
 Hooks, in every project with `docs/state/`:
 
-- `SessionStart` runs `scripts/session_start.py`, which prints the session routine (with the `scripts/tasks.py`
-  command), git status, the project's `tools/project_checks.py` and deployed artefact hash results,
-  `scripts/check_state.py`'s validation and next tasks, and `docs/status.md`. It prints the routine in full rather
-  than a pointer to it, because Claude follows it more reliably that way; don't shorten it to save context.
+- `SessionStart` runs `scripts/session_start.py` three times, once per `--part`, because Claude Code caps each hook's
+  output at 10,000 characters: `routine` prints the session routine (with the `scripts/tasks.py` command), git status,
+  and the project's `tools/project_checks.py` and deployed artefact hash results; `state` prints
+  `scripts/check_state.py`'s validation and next tasks; `status` prints `docs/status.md`, cut to fit the cap with a
+  note saying so. It prints the routine in full rather than a pointer to it, because Claude follows it more reliably
+  that way; don't shorten it to save context.
 - `PreToolUse` runs `hooks/guard_state.py`, which asks the user before an edit to `tasks.json` or `tests.json` that the
   layout reserves for them, and `hooks/pre_bash_state_stamp.py`, which records the state files' modification times
-  before a Bash call.
+  and `docs/status.md`'s before a Bash call.
 - `PostToolUse` runs `hooks/post_state_check.py`, which reports `check_state.py`'s findings after an edit to
-  `docs/state/`, and `hooks/post_bash_state_check.py`, which reports its errors after a Bash call that changed a file
-  there since `pre_bash_state_stamp.py` recorded it.
+  `docs/state/` or `docs/status.md`, and `hooks/post_bash_state_check.py`, which reports its errors after a Bash call
+  that changed one of those files since `pre_bash_state_stamp.py` recorded it.
 
 When adding a safeguard, prefer a hook that checks the result whatever tool produced it, exiting early when nothing it
 checks changed, over a rule restricting which tools Claude uses. Tool rules narrow how Claude works and miss whatever
